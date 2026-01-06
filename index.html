@@ -1,72 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>The White Rabbit | HOP Token</title>
+  <style>
+    :root {
+      --gold: #ffd700;
+      --purple: #8a2be2;
+      --dark: #0a0a14;
+      --darker: #06060c;
+      --text: #e0e0ff;
+      --error: #ff6b6b;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(135deg, var(--darker), var(--dark));
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container { max-width: 700px; margin: 0 auto; text-align: center; }
+    .logo { font-size: 3.2rem; margin: 25px 0; }
+    h1 {
+      font-size: 2.4rem;
+      background: linear-gradient(to right, var(--gold), var(--purple));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin: 10px 0;
+    }
+    .rabbit { 
+      font-size: 4.5rem; 
+      animation: hop 2.2s infinite;
+      margin: 20px 0;
+    }
+    @keyframes hop {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-25px); }
+    }
+    .card {
+      background: rgba(15, 15, 30, 0.85);
+      border: 1px solid rgba(138, 43, 226, 0.3);
+      border-radius: 18px;
+      padding: 28px;
+      margin: 25px 0;
+    }
+    .btn {
+      background: linear-gradient(90deg, var(--purple), #ff6b6b);
+      color: white;
+      border: none;
+      padding: 13px 26px;
+      border-radius: 12px;
+      font-weight: bold;
+      font-size: 1.05rem;
+      cursor: pointer;
+      width: 100%;
+      max-width: 280px;
+      margin: 8px auto;
+      display: block;
+      transition: transform 0.2s;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .hidden { display: none !important; }
+    .error { 
+      color: var(--error); 
+      margin: 20px 0; 
+      padding: 14px;
+      background: rgba(255, 107, 107, 0.12);
+      border-radius: 10px;
+      font-family: monospace;
+    }
+    .wisdom-box {
+      background: rgba(255, 215, 0, 0.1);
+      border-left: 3px solid var(--gold);
+      padding: 18px;
+      margin-top: 20px;
+      border-radius: 0 12px 12px 0;
+    }
+    .wisdom-box a {
+      color: var(--gold);
+      text-decoration: none;
+      font-weight: bold;
+      display: block;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🐇</div>
+    <h1>The White Rabbit</h1>
+    <p style="color:#a0a0c0; max-width:500px; margin:0 auto 15px;">
+      Burn HOP tokens to reveal the truth. You must be on Asset-Hub Westend.
+    </p>
 
-                        <!DOCTYPE html>
-                        <html lang="en">
-                        <head>
-                            <meta charset="UTF-8">
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-              <style>
-                body {
-                  background-color: white; /* Ensure the iframe has a white background */
-                }
+    <div class="rabbit">🐇</div>
 
-                
-              </style>
-                        </head>
-                        <body>
-                            
+    <div id="errorBox" class="error hidden"></div>
 
-              <script>
-                              const ASSET_HUB_WESTEND_CONFIG = {
-  chainId: "0x1905F5D5", // 420420421 in esadecimale — UFFICIALE
-  chainName: "Asset-Hub Westend Testnet",
-  rpcUrls: ["https://westend-asset-hub-eth-rpc.polkadot.io"],
-  nativeCurrency: {
-    name: "WND",
-    symbol: "WND",
-    decimals: 18
-  },
-  blockExplorerUrls: ["https://assethub-westend.subscan.io"]
-};
+    <div id="connectSection" class="card">
+      <button id="connectBtn" class="btn">🦊 Connect Wallet</button>
+    </div>
 
-async function addAssetHubWestend() {
-  try {
-    // Prima: prova a cambiare (potrebbe già esistere con Chain ID corretto)
-    await window.ethereum.request({
-      method: 'wallet_switchEthereumChain',
-      params: [{ chainId: '0x1905F5D5' }]
-    });
-  } catch (switchError) {
-    // Se fallisce, prova ad aggiungere SOLO se la rete non esiste
-    if (switchError.code === 4902) {
+    <div id="dashboard" class="card hidden">
+      <div>Account: <span id="accountDisplay" style="color:var(--gold);">0x...0000</span></div>
+      <div style="margin: 12px 0;">HOP Balance: <span id="balanceDisplay" style="color:var(--gold);">0.00</span></div>
+      
+      <button id="hopBtn" class="btn" disabled>✨ Execute Hop()</button>
+      <button id="claimBtn" class="btn" disabled>📖 Claim Wisdom</button>
+
+      <div id="wisdomBox" class="wisdom-box hidden">
+        <p>"Follow: https://x.com/thewhiterabbitM"</p>
+        <a href="https://x.com/thewhiterabbitM" target="_blank">@thewhiterabbitM</a>
+      </div>
+    </div>
+
+    <footer style="margin-top: 30px; color:#666; font-size:0.85rem;">
+      Contract: 0xc343...B5dC1 • Network: Asset-Hub Westend
+    </footer>
+  </div>
+
+  <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+  <script>
+    // === CONFIG ===
+    const CONTRACT_ADDRESS = "0xc3432f679e465073dbc84F3B613a20f12EdB5dC1";
+    const CONTRACT_ABI = [
+      "function balanceOf(address) view returns (uint256)",
+      "function hasHopped(address) view returns (bool)",
+      "function hasClaimed(address) view returns (bool)",
+      "function hop()",
+      "function claimWisdom()"
+    ];
+
+    // === DOM ===
+    const connectBtn = document.getElementById('connectBtn');
+    const dashboard = document.getElementById('dashboard');
+    const accountDisplay = document.getElementById('accountDisplay');
+    const balanceDisplay = document.getElementById('balanceDisplay');
+    const hopBtn = document.getElementById('hopBtn');
+    const claimBtn = document.getElementById('claimBtn');
+    const wisdomBox = document.getElementById('wisdomBox');
+    const errorBox = document.getElementById('errorBox');
+
+    // === STATE ===
+    let contract;
+    let account;
+
+    // === UTILS ===
+    function showError(msg) {
+      errorBox.textContent = msg;
+      errorBox.classList.remove('hidden');
+    }
+
+    function hideError() {
+      errorBox.classList.add('hidden');
+    }
+
+    // === CONNECT (NO NETWORK SWITCHING) ===
+    async function connectWallet() {
+      hideError();
+      
+      if (!window.ethereum) {
+        showError("🦊 MetaMask not detected.");
+        return;
+      }
+
       try {
-        await window.ethereum.request({
-          method: 'wallet_addEthereumChain',
-          params: [{
-            chainId: '0x1905F5D5',
-            chainName: 'Asset-Hub Westend Testnet',
-            rpcUrls: ['https://westend-asset-hub-eth-rpc.polkadot.io'],
-            nativeCurrency: { name: 'WND', symbol: 'WND', decimals: 18 },
-            blockExplorerUrls: ['https://assethub-westend.subscan.io']
-          }]
-        });
-      } catch (addError) {
-        if (addError.message?.includes("same RPC endpoint")) {
-          // La rete esiste già ma con Chain ID sbagliato → istruisci l'utente
-          throw new Error("Please remove the existing 'Westend Assethub' network from MetaMask and retry.");
+        // Only request accounts — assume correct network
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (!accounts?.length) throw new Error("No accounts");
+
+        account = accounts[0];
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+        // Update UI
+        accountDisplay.textContent = account.slice(0,6) + "..." + account.slice(-4);
+        connectBtn.closest('.card').classList.add('hidden');
+        dashboard.classList.remove('hidden');
+
+        await refreshData();
+      } catch (err) {
+        if (err.code === 4001) {
+          showError("🦊 Connection cancelled.");
         } else {
-          throw addError;
+          showError("🦊 Connection failed. Ensure you're on Asset-Hub Westend.");
         }
       }
-    } else {
-      throw switchError;
     }
-  }
-}
 
-showError("🦊 Network error.\n\nPlease remove any existing 'Westend Assethub' network from MetaMask (Settings → Networks) and reload this page.");
+    // === REFRESH ===
+    async function refreshData() {
+      if (!contract || !account) return;
 
+      try {
+        const [balance, hopped, claimed] = await Promise.all([
+          contract.balanceOf(account),
+          contract.hasHopped(account),
+          contract.hasClaimed(account)
+        ]);
 
-              </script>
-                        </body>
-                        </html>
-                    
+        balanceDisplay.textContent = ethers.utils.formatUnits(balance, 18);
+        hopBtn.disabled = hopped;
+        claimBtn.disabled = !hopped || claimed;
+
+        if (claimed) {
+          wisdomBox.classList.remove('hidden');
+        }
+      } catch (err) {
+        showError("🦊 Failed to read contract. Check network & contract address.");
+      }
+    }
+
+    // === ACTIONS ===
+    async function executeHop() {
+      try {
+        const tx = await contract.hop();
+        await tx.wait();
+        await refreshData();
+      } catch (err) {
+        if (err.code !== 4001) {
+          showError("🦊 Hop failed. Check gas balance.");
+        }
+      }
+    }
+
+    async function claimWisdom() {
+      try {
+        const tx = await contract.claimWisdom();
+        await tx.wait();
+        wisdomBox.classList.remove('hidden');
+        await refreshData();
+      } catch (err) {
+        if (err.code !== 4001) {
+          showError("🦊 Claim failed. Need 1 HOP token.");
+        }
+      }
+    }
+
+    // === INIT ===
+    connectBtn.addEventListener('click', connectWallet);
+    hopBtn.addEventListener('click', executeHop);
+    claimBtn.addEventListener('click', claimWisdom);
+  </script>
+</body>
+</html>
+
