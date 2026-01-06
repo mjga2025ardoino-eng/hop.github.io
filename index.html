@@ -46,31 +46,61 @@
         "function hasClaimed(address) view returns (bool)"
     ];
 
-    const WESTEND_ASSET_HUB_PARAMS = {
-        chainId: "0x190a0714", // 420103956 in hex
-        chainName: "Westend Asset Hub",
-        nativeCurrency: { name: "Westend", symbol: "WND", decimals: 12 },
-        rpcUrls: ["https://westend-asset-hub-eth-rpc.polkadot.io"],
-        blockExplorerUrls: ["https://assethub-westend.subscan.io/"]
-    };
+   const WESTEND_ASSET_HUB_PARAMS = {
+    chainId: "0x190a0714", // 420420420 decimale
+    chainName: "Westend Asset Hub",
+    nativeCurrency: { name: "Westend", symbol: "WND", decimals: 12 },
+    rpcUrls: ["https://westend-asset-hub-eth-rpc.polkadot.io"],
+    blockExplorerUrls: ["https://assethub-westend.subscan.io/"]
+};
 
-    let provider, signer, contract;
-
-    async function switchNetwork() {
-        try {
-            await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: WESTEND_ASSET_HUB_PARAMS.chainId }],
-            });
-        } catch (switchError) {
-            if (switchError.code === 4902) {
+async function switchNetwork() {
+    try {
+        await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: WESTEND_ASSET_HUB_PARAMS.chainId }],
+        });
+    } catch (switchError) {
+        // Errore 4902: la rete non è aggiunta a MetaMask
+        if (switchError.code === 4902) {
+            try {
                 await window.ethereum.request({
                     method: 'wallet_addEthereumChain',
                     params: [WESTEND_ASSET_HUB_PARAMS],
                 });
+            } catch (addError) {
+                console.error("Errore durante l'aggiunta della rete:", addError);
+                throw addError;
             }
+        } else {
+            console.error("Errore durante lo switch della rete:", switchError);
+            throw switchError;
         }
     }
+}
+
+document.getElementById('connectBtn').onclick = async () => {
+    if (!window.ethereum) return alert("Installa MetaMask!");
+    
+    try {
+        document.getElementById('status').innerText = "Tentativo di connessione rete...";
+        await switchNetwork();
+        
+        provider = new ethers.BrowserProvider(window.ethereum);
+        const accounts = await provider.send("eth_requestAccounts", []);
+        
+        if (accounts.length > 0) {
+            signer = await provider.getSigner();
+            contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+            document.getElementById('status').innerText = "Connesso correttamente!";
+            await updateUI();
+        }
+    } catch (err) {
+        console.error("Dettaglio Errore:", err);
+        // Questo ti dirà esattamente cosa non va nella console F12
+        document.getElementById('status').innerText = "Errore connessione: " + (err.message || "Controlla la console");
+    }
+};
 
     async function updateUI() {
         const address = await signer.getAddress();
@@ -142,3 +172,4 @@
 
 </body>
 </html>
+
