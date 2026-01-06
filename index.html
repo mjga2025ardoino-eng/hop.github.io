@@ -22,6 +22,16 @@
       padding: 20px;
     }
     .container { max-width: 800px; margin: 0 auto; }
+    .logo { font-size: 3.5rem; margin: 20px 0; text-align: center; }
+    h1 {
+      text-align: center;
+      font-size: 2.5rem;
+      background: linear-gradient(to right, var(--gold), var(--purple));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-bottom: 10px;
+    }
     .card {
       background: rgba(15, 15, 30, 0.8);
       border-radius: 20px;
@@ -41,7 +51,12 @@
       margin: 10px auto;
       display: block;
     }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
     .hidden { display: none !important; }
     .error { 
       color: var(--error); 
@@ -50,21 +65,24 @@
       background: rgba(255, 107, 107, 0.1);
       border-radius: 10px;
     }
-    .wisdom-box {
-      background: rgba(138, 43, 226, 0.15);
-      padding: 25px;
-      border-radius: 16px;
-      margin-top: 25px;
-      text-align: center;
+    .rabbit { 
+      font-size: 4rem; 
+      text-align: center; 
+      margin: 20px 0;
+      animation: hop 2s infinite;
+    }
+    @keyframes hop {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div style="text-align: center; padding: 40px 0;">
-      <div style="font-size: 3.5rem; margin-bottom: 10px;">🐇</div>
-      <h1 style="font-size: 2.8rem; background: linear-gradient(to right, var(--gold), var(--purple)); -webkit-background-clip: text; background-clip: text; color: transparent;">The White Rabbit</h1>
-    </div>
+    <div class="logo">🐇</div>
+    <h1>The White Rabbit</h1>
+
+    <div class="rabbit">🐇</div>
 
     <div id="errorBox" class="error hidden"></div>
 
@@ -75,33 +93,31 @@
     <div id="dashboard" class="card hidden">
       <div>Account: <span id="accountDisplay">-</span></div>
       <div>HOP Balance: <span id="balanceDisplay">0.00</span></div>
-      
-      <button id="hopBtn" class="btn" disabled>✨ Execute Hop()</button>
+      <button id="hopBtn" class="btn" disabled>✨ Hop!</button>
       <button id="claimBtn" class="btn" disabled>📖 Claim Wisdom</button>
-
-      <div id="wisdomBox" class="wisdom-box hidden">
+      
+      <div id="wisdomBox" class="hidden" style="margin-top: 20px; text-align: center;">
         <p>"Follow: https://x.com/thewhiterabbitM"</p>
-        <a href="https://x.com/thewhiterabbitM" target="_blank" style="display: inline-block; background: var(--gold); color: #0a0a14; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+        <a href="https://x.com/thewhiterabbitM" target="_blank" style="color: var(--gold); text-decoration: none; font-weight: bold;">
           Follow @thewhiterabbitM →
         </a>
       </div>
     </div>
   </div>
 
-  <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
   <script>
-    const CONTRACT_ADDRESS = "0x087Ea7C436cd9689C9aad64E5B76C6C1C3771Ad9";
-    const ASSET_HUB_WESTEND_CHAIN_ID = "0x1905F5D5"; // 420420421
+    // === CONFIGURATION ===
+    const CONTRACT_ADDRESS = "0xc3432f679e465073dbc84F3B613a20f12EdB5dC1";
+    const CHAIN_ID = "0x1905F5D5"; // 420420421 in hex
+    const NETWORK = {
+      chainId: CHAIN_ID,
+      chainName: "Asset-Hub Westend Testnet",
+      rpcUrls: ["https://westend-asset-hub-eth-rpc.polkadot.io"],
+      nativeCurrency: { name: "WND", symbol: "WND", decimals: 18 },
+      blockExplorerUrls: ["https://assethub-westend.subscan.io"]
+    };
 
-    const CONTRACT_ABI = [
-      "function balanceOf(address) view returns (uint256)",
-      "function hasHopped(address) view returns (bool)",
-      "function hasClaimed(address) view returns (bool)",
-      "function hop()",
-      "function claimWisdom()"
-    ];
-
-    // DOM
+    // === DOM ===
     const connectBtn = document.getElementById('connectBtn');
     const dashboard = document.getElementById('dashboard');
     const accountDisplay = document.getElementById('accountDisplay');
@@ -111,132 +127,150 @@
     const wisdomBox = document.getElementById('wisdomBox');
     const errorBox = document.getElementById('errorBox');
 
-    let provider;
-    let signer;
-    let contract;
-    let currentAccount;
-
+    // === UTILS ===
     function showError(msg) {
       errorBox.textContent = msg;
       errorBox.classList.remove('hidden');
     }
 
+    function hideError() {
+      errorBox.classList.add('hidden');
+    }
+
+    // === MAIN LOGIC ===
     async function connectWallet() {
+      hideError();
+      
       if (!window.ethereum) {
-        showError("🦊 MetaMask not detected.");
+        showError("🦊 MetaMask not detected. Install it to proceed.");
         return;
       }
 
       try {
-        // Richiedi rete AssetHub Westend
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: ASSET_HUB_WESTEND_CHAIN_ID }]
-        });
-      } catch (switchError) {
-        if (switchError.code === 4902) {
+        // STEP 1: Richiedi esplicitamente l'account (obbligatorio)
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (accounts.length === 0) throw new Error("No accounts found");
+
+        // STEP 2: Cambia a AssetHub Westend
+        try {
           await window.ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: ASSET_HUB_WESTEND_CHAIN_ID,
-              chainName: 'Asset-Hub Westend Testnet',
-              rpcUrls: ['https://westend-asset-hub-eth-rpc.polkadot.io'],
-              nativeCurrency: { name: 'WND', symbol: 'WND', decimals: 18 },
-              blockExplorerUrls: ['https://assethub-westend.subscan.io']
-            }]
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: CHAIN_ID }]
           });
+        } catch (switchError) {
+          if (switchError.code === 4902) {
+            // Aggiungi la rete
+            await window.ethereum.request({
+              method: 'wallet_addEthereumChain',
+              params: [NETWORK]
+            });
+          } else {
+            throw switchError;
+          }
         }
-      }
 
-      try {
-        await window.ethereum.request({ method: 'eth_requestAccounts' });
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer = provider.getSigner();
-        contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-        currentAccount = await signer.getAddress();
+        // STEP 3: Configura ethers
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(
+          CONTRACT_ADDRESS,
+          [
+            "function balanceOf(address) view returns (uint256)",
+            "function hasHopped(address) view returns (bool)",
+            "function hasClaimed(address) view returns (bool)",
+            "function hop()",
+            "function claimWisdom()"
+          ],
+          signer
+        );
 
-        accountDisplay.textContent = currentAccount.slice(0,6) + "..." + currentAccount.slice(-4);
+        const account = accounts[0];
+        accountDisplay.textContent = account.slice(0,6) + "..." + account.slice(-4);
         connectBtn.closest('.card').classList.add('hidden');
         dashboard.classList.remove('hidden');
 
-        await refreshData();
+        // Aggiorna stato
+        await refreshData(provider, contract, account);
       } catch (err) {
-        if (err.code !== 4001) {
-          showError("🦊 Connection failed: " + err.message);
+        if (err.code === 4001) {
+          showError("🦊 Connection cancelled by user.");
+        } else if (err.message?.includes("user rejected")) {
+          showError("🦊 You rejected the connection.");
+        } else {
+          showError(`🦊 Error: ${err.message || 'Unknown error'}`);
         }
       }
     }
 
-    async function refreshData() {
-      if (!contract || !currentAccount) return;
-
+    async function refreshData(provider, contract, account) {
       try {
-        // LEGGI TUTTI I DATI IN UNA VOLTA (evita chiamate multiple fallibili)
-        const results = await contract.provider.call({
-          to: CONTRACT_ADDRESS,
-          data: '0x70a08231' + currentAccount.toLowerCase().replace('0x', '').padStart(64, '0') + // balanceOf
-                  'b05c91c5' + currentAccount.toLowerCase().replace('0x', '').padStart(64, '0') + // hasHopped
-                  'd379336d' + currentAccount.toLowerCase().replace('0x', '').padStart(64, '0')    // hasClaimed
-        }, 'latest');
+        const [balance, hopped, claimed] = await Promise.all([
+          contract.balanceOf(account),
+          contract.hasHopped(account),
+          contract.hasClaimed(account)
+        ]);
 
-        // Decodifica manuale (ethers lo fa automaticamente, ma qui usiamo batch call)
-        const balanceHex = '0x' + results.slice(2, 66);
-        const hoppedHex = '0x' + results.slice(66, 130);
-        const claimedHex = '0x' + results.slice(130, 194);
+        balanceDisplay.textContent = ethers.utils.formatUnits(balance, 18);
+        hopBtn.disabled = hopped;
+        claimBtn.disabled = !hopped || claimed;
 
-        const balance = parseFloat(ethers.utils.formatUnits(balanceHex, 18)).toFixed(2);
-        const hasHopped = hoppedHex === '0x0000000000000000000000000000000000000000000000000000000000000001';
-        const hasClaimed = claimedHex === '0x0000000000000000000000000000000000000000000000000000000000000001';
-
-        balanceDisplay.textContent = balance;
-        hopBtn.disabled = hasHopped;
-        claimBtn.disabled = !hasHopped || hasClaimed;
-        if (hasClaimed) wisdomBox.classList.remove('hidden');
-      } catch (err) {
-        // Se fallisce, prova con chiamate separate (fallback)
-        try {
-          const balance = await contract.balanceOf(currentAccount);
-          const hasHopped = await contract.hasHopped(currentAccount);
-          const hasClaimed = await contract.hasClaimed(currentAccount);
-
-          balanceDisplay.textContent = ethers.utils.formatUnits(balance, 18);
-          hopBtn.disabled = hasHopped;
-          claimBtn.disabled = !hasHopped || hasClaimed;
-          if (hasClaimed) wisdomBox.classList.remove('hidden');
-        } catch (e) {
-          showError("🦊 Failed to read contract data. Ensure you're on Asset-Hub Westend.");
+        if (claimed) {
+          wisdomBox.classList.remove('hidden');
         }
+      } catch (err) {
+        showError(`🦊 Failed to load data: ${err.message}`);
       }
     }
+
+    // === AZIONI ===
+    let globalProvider, globalContract, globalAccount;
 
     async function executeHop() {
+      if (!globalContract) return showError("🦊 Wallet not connected.");
       try {
-        const tx = await contract.hop();
+        const tx = await globalContract.hop();
         await tx.wait();
-        await refreshData();
+        await refreshData(globalProvider, globalContract, globalAccount);
       } catch (err) {
-        if (err.code !== 4001) {
-          showError("🦊 Hop failed: " + err.message);
-        }
+        if (err.code !== 4001) showError(`🦊 Hop failed: ${err.message}`);
       }
     }
 
     async function claimWisdom() {
+      if (!globalContract) return showError("🦊 Wallet not connected.");
       try {
-        const tx = await contract.claimWisdom();
+        const tx = await globalContract.claimWisdom();
         await tx.wait();
         wisdomBox.classList.remove('hidden');
-        await refreshData();
+        await refreshData(globalProvider, globalContract, globalAccount);
       } catch (err) {
-        if (err.code !== 4001) {
-          showError("🦊 Claim failed: " + err.message);
-        }
+        if (err.code !== 4001) showError(`🦊 Claim failed: ${err.message}`);
       }
     }
 
+    // === SETUP EVENT LISTENERS ===
     connectBtn.addEventListener('click', connectWallet);
-    hopBtn.addEventListener('click', executeHop);
-    claimBtn.addEventListener('click', claimWisdom);
+    
+    // Placeholder per azioni (verranno assegnate dopo la connessione)
+    hopBtn.onclick = () => { 
+      if (!globalContract) connectWallet(); 
+      else executeHop(); 
+    };
+    
+    claimBtn.onclick = () => { 
+      if (!globalContract) connectWallet(); 
+      else claimWisdom(); 
+    };
+
+    // === INIZIALIZZAZIONE CON ETHERS.JS ===
+    const script = document.createElement('script');
+    script.src = "https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js";
+    script.onload = () => {
+      // Sovrascrivi le azioni con riferimenti globali
+      hopBtn.onclick = executeHop;
+      claimBtn.onclick = claimWisdom;
+    };
+    document.head.appendChild(script);
   </script>
 </body>
 </html>
