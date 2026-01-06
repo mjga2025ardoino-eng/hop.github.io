@@ -7,8 +7,8 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: linear-gradient(135deg, #0c0c1d, #1a1a2e);
-      color: #e0e0ff;
+      background: #090415;
+      color: #e0d6ff;
       font-family: 'Segoe UI', sans-serif;
       min-height: 100vh;
       overflow-x: hidden;
@@ -19,16 +19,67 @@
       position: absolute;
       top: 0; left: 0;
       width: 100%; height: 100%;
-      background: radial-gradient(circle at 10% 20%, rgba(138, 43, 226, 0.1), transparent 20%),
-                  radial-gradient(circle at 90% 80%, rgba(255, 107, 107, 0.1), transparent 20%);
+      background: 
+        radial-gradient(circle at 20% 30%, rgba(106, 43, 186, 0.15), transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(255, 107, 107, 0.1), transparent 40%);
       pointer-events: none;
     }
+
+    /* Rabbit Burrow World */
+    .burrow-world {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: -1;
+      overflow: hidden;
+    }
+    .tunnel {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 300px;
+      height: 400px;
+      background: #1a122e;
+      border-radius: 0 0 150px 150px;
+      border: 8px solid #2d224a;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+    }
+    .tunnel::before {
+      content: "";
+      position: absolute;
+      top: -30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 320px;
+      height: 30px;
+      background: #2d224a;
+      border-radius: 10px;
+    }
+    .root {
+      position: absolute;
+      background: #3a2c5a;
+      border-radius: 50%;
+    }
+    .rabbit-hole {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 120px;
+      height: 80px;
+      background: #0d081a;
+      border-radius: 0 0 60px 60px;
+      border: 4px solid #251a3d;
+      z-index: 2;
+    }
+
     .container {
       max-width: 800px;
       margin: 0 auto;
       padding: 20px;
       position: relative;
-      z-index: 2;
+      z-index: 10;
     }
     header {
       text-align: center;
@@ -36,80 +87,31 @@
     }
     .logo {
       font-size: 3.2rem;
-      margin-bottom: 10px;
-      animation: glow 2s infinite alternate;
-    }
-    @keyframes glow {
-      from { text-shadow: 0 0 10px rgba(255, 215, 0, 0.5); }
-      to { text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 165, 0, 0.6); }
+      margin: 20px 0;
+      filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.6));
     }
     h1 {
-      font-size: 2.6rem;
+      font-size: 2.5rem;
       background: linear-gradient(to right, #ffd700, #ff8c00);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .subtitle {
-      color: #a0a0c0;
-      font-size: 1.05rem;
+      color: #a090c0;
       max-width: 600px;
       margin: 0 auto 25px;
-      line-height: 1.5;
+      line-height: 1.6;
     }
 
-    /* Rabbit Burrow Animation */
-    .burrow-container {
-      position: relative;
-      height: 220px;
-      margin: 30px auto;
-      max-width: 500px;
-    }
-    .burrow {
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 120px;
-      height: 60px;
-      background: #2d2424;
-      border-radius: 0 0 60px 60px;
-      border: 4px solid #1a1313;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
-    }
-    .rabbit {
-      position: absolute;
-      bottom: 60px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 4rem;
-      opacity: 0;
-      transition: opacity 0.3s;
-    }
-    .rabbit.visible {
-      opacity: 1;
-      animation: hopAndDive 3s infinite;
-    }
-    @keyframes hopAndDive {
-      0% { bottom: 60px; transform: translateX(-50%) rotate(0deg); }
-      30% { bottom: 180px; transform: translateX(-50%) rotate(-15deg); }
-      60% { bottom: 60px; transform: translateX(-50%) rotate(10deg); }
-      70% { bottom: 30px; opacity: 1; }
-      80% { bottom: 0px; opacity: 0; }
-      81% { bottom: 60px; opacity: 0; }
-      100% { bottom: 60px; opacity: 0; }
-    }
-
-    /* UI Cards */
     .card {
-      background: rgba(20, 20, 40, 0.85);
+      background: rgba(20, 15, 40, 0.85);
       border: 1px solid rgba(138, 43, 226, 0.4);
       border-radius: 20px;
-      padding: 28px;
-      margin: 25px 0;
+      padding: 30px;
+      margin: 30px 0;
       backdrop-filter: blur(10px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     }
     .btn {
       background: linear-gradient(90deg, #8a2be2, #ff6b6b);
@@ -118,62 +120,39 @@
       padding: 14px 28px;
       border-radius: 12px;
       font-weight: bold;
-      font-size: 1.05rem;
-      cursor: pointer;
       width: 100%;
       max-width: 280px;
       margin: 10px auto;
       display: block;
+      cursor: pointer;
       transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba(138, 43, 226, 0.3);
     }
-    .btn:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 6px 20px rgba(138, 43, 226, 0.5);
-    }
-    .btn:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-    }
+    .btn:hover { transform: translateY(-3px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
     .hidden { display: none !important; }
-    .error { 
-      color: #ff6b6b; 
-      margin: 20px 0; 
+    .error {
+      color: #ff6b6b;
+      margin: 20px 0;
       padding: 15px;
       background: rgba(255, 107, 107, 0.1);
-      border-left: 4px solid #ff6b6b;
       border-radius: 10px;
       font-family: monospace;
-      white-space: pre-wrap;
     }
     .wisdom-box {
       background: rgba(255, 215, 0, 0.1);
-      border: 1px solid rgba(255, 215, 0, 0.3);
+      border-left: 3px solid #ffd700;
       padding: 20px;
-      border-radius: 16px;
       margin-top: 20px;
-      text-align: center;
+      border-radius: 0 12px 12px 0;
     }
-    .wisdom-box p {
-      font-style: italic;
-      margin-bottom: 12px;
-      color: #ffd700;
-    }
+    .wisdom-box p { color: #ffd700; font-style: italic; }
     .twitter-link {
-      display: inline-block;
-      background: #ffd700;
-      color: #0a0a14;
-      padding: 10px 20px;
-      border-radius: 8px;
+      color: #ffd700;
       text-decoration: none;
       font-weight: bold;
-      transition: all 0.3s ease;
     }
-    .twitter-link:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(255, 215, 0, 0.4);
-    }
+
     footer {
       text-align: center;
       color: #666;
@@ -183,31 +162,25 @@
   </style>
 </head>
 <body>
+  <!-- Fantasy Burrow Background -->
+  <div class="burrow-world" id="burrowWorld"></div>
+
   <div class="container">
     <header>
       <div class="logo">🐇</div>
       <h1>The White Rabbit</h1>
-      <p class="subtitle">Burn HOP tokens to reveal the truth. Deployed on Asset-Hub Westend Testnet.</p>
+      <p class="subtitle">Follow the rabbit down the burrow. Burn HOP tokens to reveal the truth.</p>
     </header>
 
-    <!-- Animated Burrow -->
-    <div class="burrow-container">
-      <div class="burrow"></div>
-      <div class="rabbit" id="rabbit">🐇</div>
-    </div>
-
-    <!-- Error Box -->
     <div id="errorBox" class="error hidden"></div>
 
-    <!-- Connect Section -->
     <div id="connectSection" class="card">
       <button id="connectBtn" class="btn">🦊 Connect Wallet</button>
     </div>
 
-    <!-- Dashboard -->
     <div id="dashboard" class="card hidden">
-      <div>Account: <span id="accountDisplay" style="color:#ffd700;">0x...0000</span></div>
-      <div style="margin: 12px 0;">HOP Balance: <span id="balanceDisplay" style="color:#ffd700;">0.00</span></div>
+      <div>Account: <span id="accountDisplay">0x...0000</span></div>
+      <div style="margin: 12px 0;">HOP Balance: <span id="balanceDisplay">0.00</span></div>
       
       <button id="hopBtn" class="btn" disabled>✨ Execute Hop()</button>
       <button id="claimBtn" class="btn" disabled>📖 Claim Wisdom</button>
@@ -215,154 +188,161 @@
       <div id="wisdomBox" class="wisdom-box hidden">
         <p>"Follow: https://x.com/thewhiterabbitM"</p>
         <a href="https://x.com/thewhiterabbitM" target="_blank" class="twitter-link">
-          Follow @thewhiterabbitM →
+          @thewhiterabbitM →
         </a>
       </div>
     </div>
 
     <footer>
-      Contract: 0xc343...B5dC1 • Network: Asset-Hub Westend
+      Contract: 0xc343...B5dC1 • Asset-Hub Westend
     </footer>
   </div>
 
   <script>
-    // Safe DOM access
-    const connectBtn = document.getElementById('connectBtn');
-    const dashboard = document.getElementById('dashboard');
-    const accountDisplay = document.getElementById('accountDisplay');
-    const balanceDisplay = document.getElementById('balanceDisplay');
-    const hopBtn = document.getElementById('hopBtn');
-    const claimBtn = document.getElementById('claimBtn');
-    const wisdomBox = document.getElementById('wisdomBox');
-    const errorBox = document.getElementById('errorBox');
-    const rabbit = document.getElementById('rabbit');
+    // === ROBUST ETHERS.JS LOADER ===
+    function loadEthersJS() {
+      return new Promise((resolve, reject) => {
+        if (window.ethers) {
+          resolve();
+          return;
+        }
 
-    // Show rabbit animation after 1 second
-    setTimeout(() => {
-      if (rabbit) rabbit.classList.add('visible');
-    }, 1000);
+        const script = document.createElement('script');
+        script.src = "https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js";
+        script.onload = () => {
+          if (window.ethers) resolve();
+          else reject(new Error("ethers.js loaded but not available"));
+        };
+        script.onerror = () => reject(new Error("Failed to load ethers.js"));
+        document.head.appendChild(script);
+      });
+    }
 
-    // Error handler
-    function showError(msg) {
-      if (errorBox) {
+    // === FANTASY BURROW GENERATOR ===
+    function generateBurrowWorld() {
+      const world = document.getElementById('burrowWorld');
+      const tunnel = document.createElement('div');
+      tunnel.className = 'tunnel';
+      world.appendChild(tunnel);
+
+      const hole = document.createElement('div');
+      hole.className = 'rabbit-hole';
+      world.appendChild(hole);
+
+      // Genera radici algoritmiche
+      for (let i = 0; i < 25; i++) {
+        const root = document.createElement('div');
+        root.className = 'root';
+        const size = 10 + Math.random() * 40;
+        const x = 50 + (Math.random() - 0.5) * 200;
+        const y = 50 + Math.random() * 300;
+        root.style.width = `${size}px`;
+        root.style.height = `${size}px`;
+        root.style.left = `${x}px`;
+        root.style.top = `${y}px`;
+        world.appendChild(root);
+      }
+    }
+
+    // === DApp Logic ===
+    async function initDApp() {
+      generateBurrowWorld();
+
+      const connectBtn = document.getElementById('connectBtn');
+      const dashboard = document.getElementById('dashboard');
+      const accountDisplay = document.getElementById('accountDisplay');
+      const balanceDisplay = document.getElementById('balanceDisplay');
+      const hopBtn = document.getElementById('hopBtn');
+      const claimBtn = document.getElementById('claimBtn');
+      const wisdomBox = document.getElementById('wisdomBox');
+      const errorBox = document.getElementById('errorBox');
+
+      function showError(msg) {
         errorBox.textContent = msg;
         errorBox.classList.remove('hidden');
-      }
-      console.error("[DApp Error]", msg);
-    }
-
-    // Hide error
-    function hideError() {
-      if (errorBox) errorBox.classList.add('hidden');
-    }
-
-    // Initialize ethers only if available
-    let provider, signer, contract;
-    const CONTRACT_ADDRESS = "0xc3432f679e465073dbc84F3B613a20f12EdB5dC1";
-    const CONTRACT_ABI = [
-      "function balanceOf(address) view returns (uint256)",
-      "function hasHopped(address) view returns (bool)",
-      "function hasClaimed(address) view returns (bool)",
-      "function hop()",
-      "function claimWisdom()"
-    ];
-
-    // Connect wallet
-    async function connectWallet() {
-      hideError();
-      if (!window.ethereum) {
-        showError("🦊 MetaMask not detected. Install it to proceed.");
-        return;
+        console.error("[White Rabbit Error]", msg);
       }
 
-      try {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        if (!accounts?.length) throw new Error("No accounts found");
+      async function connectWallet() {
+        if (!window.ethereum) {
+          showError("🦊 MetaMask not detected. Install it to enter the burrow.");
+          return;
+        }
 
-        provider = new ethers.providers.Web3Provider(window.ethereum);
-        signer = provider.getSigner();
-        contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
-        const account = accounts[0];
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+          if (!accounts?.length) throw new Error("No accounts");
 
-        if (accountDisplay) accountDisplay.textContent = account.slice(0,6) + "..." + account.slice(-4);
-        if (connectBtn && connectBtn.closest('.card')) connectBtn.closest('.card').classList.add('hidden');
-        if (dashboard) dashboard.classList.remove('hidden');
+          await loadEthersJS();
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const signer = provider.getSigner();
+          const contract = new ethers.Contract(
+            "0xc3432f679e465073dbc84F3B613a20f12EdB5dC1",
+            [
+              "function balanceOf(address) view returns (uint256)",
+              "function hasHopped(address) view returns (bool)",
+              "function hasClaimed(address) view returns (bool)",
+              "function hop()",
+              "function claimWisdom()"
+            ],
+            signer
+          );
 
-        await refreshData();
-      } catch (err) {
-        if (err.code === 4001) {
-          showError("🦊 Connection cancelled by user.");
-        } else {
-          showError("🦊 Connection failed. Ensure you're on Asset-Hub Westend.");
+          const account = accounts[0];
+          accountDisplay.textContent = account.slice(0,6) + "..." + account.slice(-4);
+          connectBtn.closest('.card').classList.add('hidden');
+          dashboard.classList.remove('hidden');
+
+          // Refresh
+          const [balance, hopped, claimed] = await Promise.all([
+            contract.balanceOf(account),
+            contract.hasHopped(account),
+            contract.hasClaimed(account)
+          ]);
+
+          balanceDisplay.textContent = ethers.utils.formatUnits(balance, 18);
+          hopBtn.disabled = hopped;
+          claimBtn.disabled = !hopped || claimed;
+          if (claimed) wisdomBox.classList.remove('hidden');
+
+          // Actions
+          hopBtn.onclick = async () => {
+            try {
+              const tx = await contract.hop();
+              await tx.wait();
+              location.reload();
+            } catch (err) {
+              if (err.code !== 4001) showError("Hop failed. Check gas balance.");
+            }
+          };
+
+          claimBtn.onclick = async () => {
+            try {
+              const tx = await contract.claimWisdom();
+              await tx.wait();
+              wisdomBox.classList.remove('hidden');
+              location.reload();
+            } catch (err) {
+              if (err.code !== 4001) showError("Claim failed. Need 1 HOP token.");
+            }
+          };
+
+        } catch (err) {
+          if (err.message?.includes("ethers.js")) {
+            showError("🦊 Failed to load web3 library. Check your internet connection.");
+          } else if (err.code === 4001) {
+            showError("🦊 Connection cancelled.");
+          } else {
+            showError(`🦊 ${err.message || 'Unknown error'}`);
+          }
         }
       }
+
+      connectBtn.addEventListener('click', connectWallet);
     }
 
-    // Refresh data
-    async function refreshData() {
-      if (!contract) return;
-      try {
-        const account = await signer.getAddress();
-        const [balance, hopped, claimed] = await Promise.all([
-          contract.balanceOf(account),
-          contract.hasHopped(account),
-          contract.hasClaimed(account)
-        ]);
-
-        if (balanceDisplay) balanceDisplay.textContent = ethers.utils.formatUnits(balance, 18);
-        if (hopBtn) hopBtn.disabled = hopped;
-        if (claimBtn) claimBtn.disabled = !hopped || claimed;
-        if (wisdomBox && claimed) wisdomBox.classList.remove('hidden');
-      } catch (err) {
-        showError("Failed to read contract data.");
-      }
-    }
-
-    // Execute actions
-    async function executeHop() {
-      if (!contract) return showError("🦊 Wallet not connected.");
-      try {
-        const tx = await contract.hop();
-        await tx.wait();
-        await refreshData();
-      } catch (err) {
-        if (err.code !== 4001) showError("_hop failed. Check gas balance._");
-      }
-    }
-
-    async function claimWisdom() {
-      if (!contract) return showError("🦊 Wallet not connected.");
-      try {
-        const tx = await contract.claimWisdom();
-        await tx.wait();
-        if (wisdomBox) wisdomBox.classList.remove('hidden');
-        await refreshData();
-      } catch (err) {
-        if (err.code !== 4001) showError("Claim failed. Need 1 HOP token.");
-      }
-    }
-
-    // Initialize with ethers.js
-    function initApp() {
-      if (connectBtn) connectBtn.addEventListener('click', connectWallet);
-      if (hopBtn) hopBtn.addEventListener('click', executeHop);
-      if (claimBtn) claimBtn.addEventListener('click', claimWisdom);
-    }
-
-    // Load ethers.js dynamically
-    const script = document.createElement('script');
-    script.src = "https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js";
-    script.onload = () => {
-      if (typeof ethers !== 'undefined') {
-        initApp();
-      } else {
-        showError("Failed to load ethers.js. Check your internet connection.");
-      }
-    };
-    script.onerror = () => {
-      showError("Failed to load ethers.js. Please try again later.");
-    };
-    document.head.appendChild(script);
+    // Start everything
+    document.addEventListener('DOMContentLoaded', initDApp);
   </script>
 </body>
 </html>
