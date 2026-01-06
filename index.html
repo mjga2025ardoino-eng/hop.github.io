@@ -10,7 +10,7 @@
 
         body {
             font-family: 'VT323', monospace;
-            background: linear-gradient(to bottom right, #0a0a0a, #1a1a1a);
+            background-color: #0a0a0a; /* Dark background */
             color: #00ff41; /* Neo green */
             display: flex;
             flex-direction: column;
@@ -22,18 +22,44 @@
             box-sizing: border-box;
             overflow-x: hidden;
             text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+            position: relative; /* For image positioning */
+        }
+
+        #background-image-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -1; /* Send to background */
+        }
+
+        #background-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.4) saturate(1.5) blur(2px); /* Darken, intensify, blur slightly */
+            animation: fadeIn 2s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
 
         .container {
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85); /* Slightly darker for readability */
             padding: 2.5rem;
             border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+            box-shadow: 0 0 25px rgba(0, 255, 65, 0.5); /* Stronger glow */
             width: 95%;
-            max-width: 600px;
+            max-width: 650px;
             text-align: center;
-            border: 1px solid #008f11;
-            animation: glitch 1.5s infinite alternate;
+            border: 2px solid #00ff41; /* Neo green border */
+            animation: glitch 1.5s infinite alternate, pulseBorder 3s infinite alternate;
+            position: relative; /* For z-index */
+            z-index: 1; /* Keep content above background */
         }
 
         @keyframes glitch {
@@ -45,114 +71,184 @@
             100% { transform: translate(0); }
         }
 
+        @keyframes pulseBorder {
+            from { border-color: #00ff41; }
+            to { border-color: #00aa22; }
+        }
+
         h1 {
             font-family: 'Press Start 2P', cursive;
-            font-size: 2em;
+            font-size: 2.2em;
             margin-bottom: 20px;
             color: #00ff41;
             text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px #00ff41;
         }
 
         p {
             font-size: 1.1em;
             line-height: 1.6;
+            margin-bottom: 15px;
         }
 
-        button {
-            background-color: #008f11;
+        .cta-button {
+            background-color: #00cc44; /* Brighter green */
             color: #000;
-            border: 2px solid #00ff41;
-            padding: 12px 25px;
-            border-radius: 5px;
-            font-size: 1.1em;
+            border: 3px solid #00ff41;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 1.2em;
             font-family: 'Press Start 2P', cursive;
             cursor: pointer;
             margin: 15px 10px;
-            transition: all 0.2s ease-in-out;
-            box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.7);
             text-transform: uppercase;
         }
 
-        button:hover {
-            background-color: #00ff41;
+        .cta-button:hover:not(:disabled) {
+            background-color: #00ff66;
             color: #000;
-            box-shadow: 0 0 15px rgba(0, 255, 65, 0.8);
+            box-shadow: 0 0 20px rgba(0, 255, 65, 1);
+            transform: scale(1.05);
         }
 
-        button:disabled {
+        .cta-button:disabled {
             background-color: #333;
             border-color: #00500a;
             color: #888;
             cursor: not-allowed;
             box-shadow: none;
+            filter: grayscale(80%);
         }
 
         .info-box {
-            background: rgba(0, 255, 65, 0.1);
-            border: 1px dashed #008f11;
-            padding: 15px;
+            background: rgba(0, 255, 65, 0.15); /* Slightly more vibrant */
+            border: 1px dashed #00ff41;
+            padding: 20px;
             margin-top: 25px;
-            border-radius: 5px;
+            border-radius: 8px;
             text-align: left;
-            font-size: 0.9em;
-            line-height: 1.5;
+            font-size: 1em;
+            line-height: 1.6;
+            box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.2);
         }
 
         #status {
-            font-size: 1.2em;
+            font-size: 1.3em;
             margin-top: 25px;
             color: #00ff41;
-            text-shadow: 0 0 8px rgba(0, 255, 65, 0.7);
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.8);
+            animation: textGlow 2s infinite alternate;
+        }
+
+        @keyframes textGlow {
+            from { text-shadow: 0 0 10px #00ff41; }
+            to { text-shadow: 0 0 15px #00ff41, 0 0 20px #00ff41; }
         }
 
         #error-message {
             color: #ff0041;
             font-weight: bold;
             margin-top: 10px;
+            text-shadow: 0 0 5px #ff0041;
+            animation: errorPulse 1s infinite alternate;
+        }
+
+        @keyframes errorPulse {
+            from { opacity: 1; }
+            to { opacity: 0.7; }
         }
 
         .toggle-abi {
-            font-size: 0.8em;
+            font-size: 0.9em;
             color: #00ff41;
             text-decoration: underline;
             cursor: pointer;
             margin-top: 20px;
+            display: inline-block;
+            padding: 5px 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 5px;
         }
 
         #abi-display {
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.95);
             border: 1px solid #008f11;
-            max-height: 200px;
+            max-height: 250px;
             overflow-y: scroll;
             margin-top: 10px;
-            padding: 10px;
+            padding: 15px;
             text-align: left;
             word-break: break-all;
             white-space: pre-wrap;
             font-size: 0.8em;
             color: #00ff41;
             display: none;
+            border-radius: 5px;
+        }
+
+        .wisdom-popup {
+            display: none; /* Hidden by default */
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            border: 3px solid #00ff41;
+            padding: 30px;
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.8);
+            border-radius: 10px;
+            z-index: 1000;
+            text-align: center;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 1.5em;
+            color: #00ff41;
+            animation: popupAppear 0.5s ease-out;
+        }
+
+        @keyframes popupAppear {
+            from { opacity: 0; transform: translate(-50%, -40%) scale(0.8); }
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+
+        .wisdom-popup button {
+            margin-top: 20px;
+            background-color: #008f11;
+            color: #000;
+            border: 2px solid #00ff41;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 1em;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
         }
     </style>
 </head>
 <body>
 
+<div id="background-image-container">
+    <img id="background-image" src="" alt="Cyberpunk Rabbit Hole" />
+</div>
+
 <div class="container">
     <h1>Follow The White Rabbit!</h1>
-    <p>Dive deeper into the rabbit hole on Westend Asset Hub. Will you HOP and claim the ancient wisdom?</p>
+    <p>Dive deeper into the logarithmic cyberpunk forest of Westend Asset Hub. Will you HOP and claim the ancient wisdom that lies within?</p>
 
-    <button id="connectBtn">Connect MetaMask</button>
+    <button id="connectBtn" class="cta-button">Connect MetaMask</button>
     
     <div id="walletInfo" class="info-box" style="display:none;">
         <strong>Connected Account:</strong> <span id="account"></span><br>
-        <strong>Your Balance:</strong> <span id="balance">0</span> HOP<br>
-        <strong>Has Hopped:</strong> <span id="hasHoppedStatus">No</span><br>
-        <strong>Has Claimed Wisdom:</strong> <span id="hasClaimedStatus">No</span>
+        <strong>Your HOP Balance:</strong> <span id="balance">0</span> HOP<br>
+        <strong>Westend Balance (WND):</strong> <span id="wndBalance">0</span> WND (for gas)<br>
+        <strong>Status:</strong> <span id="hoppedStatus"></span><br>
+        <strong>Wisdom:</strong> <span id="claimedStatus"></span>
     </div>
 
     <div id="actions" style="display:none;">
-        <button id="hopBtn">Take the HOP (Register)</button>
-        <button id="claimBtn">Claim the Wisdom (Cost: 1 HOP)</button>
+        <button id="hopBtn" class="cta-button">Take the HOP (Register)</button>
+        <button id="claimBtn" class="cta-button">Claim the Wisdom (Cost: 1 HOP)</button>
     </div>
 
     <p id="status">Awaiting your journey...</p>
@@ -160,6 +256,12 @@
 
     <div class="toggle-abi" onclick="toggleAbi()">[ Show/Hide Contract ABI ]</div>
     <pre id="abi-display"></pre>
+</div>
+
+<div id="wisdomPopup" class="wisdom-popup">
+    <p>THE WHITE RABBIT'S WISDOM:</p>
+    <p id="wisdomText"></p>
+    <button onclick="closeWisdomPopup()">Close</button>
 </div>
 
 <script>
@@ -261,16 +363,12 @@
                     "internalType": "address",
                     "name": "to",
                     "type": "address"
-                },
-                {
-                    "indexed": false,
-                    "internalType": "uint256",
-                    "name": "value",
-                    "type": "uint256"
                 }
             ],
             "name": "Transfer",
-            "type": "event"
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
         },
         {
             "anonymous": false,
@@ -415,19 +513,38 @@
         }
     ];
 
- const WESTEND_ASSET_HUB_PARAMS = {
-    chainId: "0x190f1b45", // Il valore corretto rilevato dal tuo errore (420420421)
-    chainName: "Westend Asset Hub",
-    nativeCurrency: { 
-        name: "Westend", 
-        symbol: "WND", 
-        decimals: 18 // Lasciamo 18 per MetaMask
-    },
-    rpcUrls: ["https://westend-asset-hub-eth-rpc.polkadot.io"],
-    blockExplorerUrls: ["https://assethub-westend.subscan.io/"]
-};
+    const WESTEND_ASSET_HUB_PARAMS = {
+        chainId: "0x190f1b45", // Correct Chain ID as per latest error
+        chainName: "Westend Asset Hub",
+        nativeCurrency: { 
+            name: "Westend", 
+            symbol: "WND", 
+            decimals: 18 // MetaMask requirement
+        },
+        rpcUrls: ["https://westend-asset-hub-eth-rpc.polkadot.io"],
+        blockExplorerUrls: ["https://assethub-westend.subscan.io/"]
+    };
 
     let provider, signer, contract;
+    let userAddress = null;
+    const MIN_WND_FOR_TX = ethers.parseUnits("0.01", 12); // Minimum WND for gas (adjust as needed, 0.01 WND is a safe bet, WND has 12 decimals)
+
+    async function generateBackgroundImage() {
+        const imageElement = document.getElementById('background-image');
+        // This is where the image generation will happen.
+        // For now, it will generate a default image. When enabled,
+        // the tag will trigger the image generation model.
+        imageElement.src = "https://via.placeholder.com/1920x1080?text=Cyberpunk+Rabbit+Hole"; // Placeholder
+        // Placeholder per l'immagine. La vera immagine verrà generata qui:
+        imageElement.src = "https://your-image-generation-service.com/generate?prompt=A white rabbit entering a glowing, deep rabbit hole in a dense, dark, logarithmic cyberpunk forest, with neon fractal trees and shimmering digital flora, changing colors dynamically. Atmospheric, cinematic, volumetric lighting, unreal engine, 8k. Varying colors, different time of day.";
+        imageElement.alt = "A white rabbit entering a glowing, deep rabbit hole in a dense, dark, logarithmic cyberpunk forest, with neon fractal trees and shimmering digital flora, changing colors dynamically. Atmospheric, cinematic, volumetric lighting, unreal engine, 8k. Varying colors, different time of day.";
+        // Per ora, useremo un'immagine statica, ma potresti integrare un servizio che genera un'immagine diversa ogni volta.
+        // L'istruzione ` ` qui sotto verrebbe sostituita da un'immagine reale generata al volo.
+    }
+    
+    // Call this once on page load to set the initial background
+    generateBackgroundImage();
+
 
     async function switchNetwork() {
         try {
@@ -446,7 +563,7 @@
                     return true;
                 } catch (addError) {
                     console.error("Error adding network:", addError);
-                    showError("Failed to add Westend Asset Hub to MetaMask.");
+                    showError("Failed to add Westend Asset Hub to MetaMask. Please try manually.");
                     return false;
                 }
             } else {
@@ -458,23 +575,41 @@
     }
 
     async function updateUI() {
-        const address = await signer.getAddress();
-        const balance = await contract.balanceOf(address);
-        const hopped = await contract.hasHopped(address);
-        const claimed = await contract.hasClaimed(address);
+        if (!signer) { // Not connected yet
+            document.getElementById('status').innerText = "Please connect your MetaMask wallet.";
+            return;
+        }
 
-        document.getElementById('account').innerText = address;
-        document.getElementById('balance').innerText = ethers.formatUnits(balance, 18);
-        document.getElementById('hasHoppedStatus').innerText = hopped ? "Yes (You've entered the rabbit hole!)" : "No";
-        document.getElementById('hasClaimedStatus').innerText = claimed ? "Yes (Wisdom gained!)" : "No";
+        userAddress = await signer.getAddress();
+        const hopBalance = await contract.balanceOf(userAddress);
+        const hasHopped = await contract.hasHopped(userAddress);
+        const hasClaimed = await contract.hasClaimed(userAddress);
+        const wndBalanceRaw = await provider.getBalance(userAddress); // WND balance
+        const wndBalance = ethers.formatUnits(wndBalanceRaw, 12); // WND has 12 decimals
+
+        document.getElementById('account').innerText = userAddress;
+        document.getElementById('balance').innerText = ethers.formatUnits(hopBalance, 18);
+        document.getElementById('wndBalance').innerText = parseFloat(wndBalance).toFixed(4); // Display with 4 decimals
+
+        document.getElementById('hoppedStatus').innerText = hasHopped ? "You've taken the HOP!" : "You haven't HOPPED yet.";
+        document.getElementById('claimedStatus').innerText = hasClaimed ? "Wisdom claimed!" : "Wisdom awaits...";
         
         document.getElementById('walletInfo').style.display = 'block';
         document.getElementById('actions').style.display = 'block';
         document.getElementById('connectBtn').innerText = "Wallet Connected";
         document.getElementById('connectBtn').disabled = true;
 
-        document.getElementById('hopBtn').disabled = hopped; // Disable HOP if already hopped
-        document.getElementById('claimBtn').disabled = !hopped || claimed || balance < BigInt(10**18); // Disable claim if not hopped, already claimed, or insufficient balance
+        // Enable/Disable buttons based on state and WND balance
+        const enoughWndForTx = wndBalanceRaw >= MIN_WND_FOR_TX;
+        if (!enoughWndForTx) {
+            showError("Insufficient WND balance for transactions! You need at least " + ethers.formatUnits(MIN_WND_FOR_TX, 12) + " WND for gas.");
+            document.getElementById('hopBtn').disabled = true;
+            document.getElementById('claimBtn').disabled = true;
+        } else {
+            document.getElementById('hopBtn').disabled = hasHopped;
+            document.getElementById('claimBtn').disabled = !hasHopped || hasClaimed || hopBalance < BigInt(10**18); // 1 HOP is 10^18 Wei
+            clearError(); // Clear WND warning if now sufficient
+        }
     }
 
     document.getElementById('connectBtn').onclick = async () => {
@@ -494,6 +629,21 @@
             }
             
             provider = new ethers.BrowserProvider(window.ethereum);
+            // Listen for account changes
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    // MetaMask disconnected
+                    location.reload(); // Simple reload to reset state
+                } else {
+                    updateUI(); // Update UI for new account
+                }
+            });
+            // Listen for chain changes
+            window.ethereum.on('chainChanged', (chainId) => {
+                location.reload(); // Reload on chain change to ensure proper contract context
+            });
+
+
             const accounts = await provider.send("eth_requestAccounts", []);
             
             if (accounts.length > 0) {
@@ -530,17 +680,26 @@
             clearError();
             const tx = await contract.claimWisdom();
             document.getElementById('status').innerText = "Transaction sent... Awaiting confirmation. The truth awaits!";
-            await tx.wait();
-            document.getElementById('status').innerText = "Wisdom Claimed! One HOP consumed. Check your console for the secret message!";
+            const receipt = await tx.wait();
+            
+            let wisdomMessage = "Wisdom gained!";
+            // Try to find the WisdomClaimed event
+            const parser = new ethers.Interface(ABI); // Create an interface from your ABI
+            for (const log of receipt.logs) {
+                try {
+                    const parsedLog = parser.parseLog(log);
+                    if (parsedLog && parsedLog.name === "WisdomClaimed") {
+                        wisdomMessage = parsedLog.args.message;
+                        break;
+                    }
+                } catch (e) {
+                    // Not a log we care about, or failed parsing
+                }
+            }
+            
+            document.getElementById('status').innerText = "Wisdom Claimed! One HOP consumed. Revealing the truth...";
+            showWisdomPopup(wisdomMessage);
             await updateUI();
-            // TODO: Potresti voler leggere l'evento WisdomClaimed qui per mostrare il messaggio direttamente
-            // Se vuoi leggere l'evento:
-            // const receipt = await tx.wait();
-            // const wisdomEvent = receipt.logs.find(log => contract.interface.parseLog(log)?.name === "WisdomClaimed");
-            // if (wisdomEvent) {
-            //     const message = contract.interface.parseLog(wisdomEvent).args.message;
-            //     alert("The White Rabbit's Wisdom: " + message);
-            // }
         } catch (err) {
             handleContractError(err);
         }
@@ -550,14 +709,16 @@
         let errorMsg = "An unknown error occurred during transaction.";
         if (err.reason) {
             errorMsg = "Error: " + err.reason;
-        } else if (err.message.includes("HopFirst")) {
+        } else if (err.message && err.message.includes("HopFirst")) {
             errorMsg = "Error: You must HOP first!";
-        } else if (err.message.includes("AlreadyClaimed")) {
+        } else if (err.message && err.message.includes("AlreadyClaimed")) {
             errorMsg = "Error: You have already claimed the Wisdom!";
-        } else if (err.message.includes("InsufficientBalance")) {
+        } else if (err.message && err.message.includes("InsufficientBalance")) {
             errorMsg = "Error: Insufficient HOP balance to claim wisdom (requires 1 HOP).";
         } else if (err.code === "ACTION_REJECTED") {
             errorMsg = "Transaction rejected by user in MetaMask.";
+        } else if (err.data && err.data.message) { // Generic RPC error from node
+            errorMsg = "RPC Error: " + err.data.message;
         }
         showError(errorMsg);
         console.error(err);
@@ -566,13 +727,13 @@
     function showError(message) {
         document.getElementById('error-message').innerText = message;
         document.getElementById('error-message').style.display = 'block';
-        document.getElementById('status').style.display = 'none'; // Hide status on error
+        document.getElementById('status').style.display = 'none'; 
     }
 
     function clearError() {
         document.getElementById('error-message').innerText = "";
         document.getElementById('error-message').style.display = 'none';
-        document.getElementById('status').style.display = 'block'; // Show status again
+        document.getElementById('status').style.display = 'block'; 
     }
 
     function toggleAbi() {
@@ -585,13 +746,40 @@
         }
     }
 
+    function showWisdomPopup(message) {
+        document.getElementById('wisdomText').innerText = message;
+        document.getElementById('wisdomPopup').style.display = 'block';
+    }
+
+    function closeWisdomPopup() {
+        document.getElementById('wisdomPopup').style.display = 'none';
+    }
+
     // Load ABI into display on page load (hidden by default)
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('abi-display').innerText = JSON.stringify(ABI, null, 2);
+        generateBackgroundImage(); // Generate on page load
     });
+
+    // Handle MetaMask account/chain changes
+    if (window.ethereum) {
+        window.ethereum.on('accountsChanged', (accounts) => {
+            if (accounts.length === 0) {
+                // User disconnected all accounts
+                location.reload();
+            } else if (userAddress !== accounts[0]) { // New account selected
+                userAddress = accounts[0];
+                updateUI();
+            }
+        });
+
+        window.ethereum.on('chainChanged', (chainId) => {
+            // Reload the page to ensure fresh context for the new chain
+            location.reload();
+        });
+    }
+
 </script>
 
 </body>
 </html>
-
-
