@@ -16,8 +16,11 @@
                             
 
               <script>
-                              // CONFIGURAZIONE
+                              // CONFIGURAZIONE UFFICIALE ASSET-HUB WESTEND
 const CONTRACT_ADDRESS = "0x087Ea7C436cd9689C9aad64E5B76C6C1C3771Ad9";
+const ASSET_HUB_WESTEND_RPC = "https://westend-asset-hub-eth-rpc.polkadot.io";
+const ASSET_HUB_WESTEND_CHAIN_ID = "0x1905F5D5"; // 420420421 in esadecimale
+
 const CONTRACT_ABI = [
   "function balanceOf(address) view returns (uint256)",
   "function hop()",
@@ -25,9 +28,6 @@ const CONTRACT_ABI = [
   "function hasHopped(address) view returns (bool)",
   "function hasClaimed(address) view returns (bool)"
 ];
-
-// Chain ID corretto per AssetHub Westend (DECIMALE: 420420421)
-const ASSET_HUB_WESTEND_CHAIN_ID = "0x1905F5D5"; // Esadecimale di 420420421
 
 // ELEMENTI DOM
 const connectBtn = document.getElementById('connect-btn');
@@ -44,7 +44,6 @@ const errorModal = document.getElementById('error-modal');
 const errorMessage = document.getElementById('error-message');
 const closeError = document.getElementById('close-error');
 
-// STATO
 let provider = null;
 let signer = null;
 let contract = null;
@@ -52,109 +51,115 @@ let currentAccount = null;
 
 // INIZIALIZZAZIONE
 async function init() {
+  // Verifica se MetaMask è presente
+  if (!window.ethereum) {
+    showError('MetaMask non rilevato. Installalo per interagire con la dApp.');
+    return;
+  }
+
+  // Aggiungi AssetHub Westend a MetaMask se non presente
+  try {
+    await window.ethereum.request({
+      method: 'wallet_addEthereumChain',
+      params: [{
+        chainId: ASSET_HUB_WESTEND_CHAIN_ID,
+        chainName: 'Polkadot AssetHub Westend',
+        rpcUrls: [ASSET_HUB_WESTEND_RPC],
+        nativeCurrency: {
+          name: 'WND',
+          symbol: 'WND',
+          decimals: 18
+        },
+        blockExplorerUrls: ['https://assethub-westend.subscan.io']
+      }]
+    });
+  } catch (addError) {
+    // La rete potrebbe già essere aggiunta - ignora l'errore
+    if (addError.code !== 4902) {
+      console.warn('Could not add AssetHub Westend network:', addError);
+    }
+  }
+
+  // Prova connessione automatica
   await autoConnect();
   
+  // Event listeners
   connectBtn.addEventListener('click', connectWallet);
   hopBtn.addEventListener('click', executeHop);
   claimBtn.addEventListener('click', claimWisdom);
   closeError.addEventListener('click', () => errorModal.classList.add('hidden'));
   
-  if (window.ethereum) {
-    window.ethereum.on('accountsChanged', () => location.reload());
-    window.ethereum.on('chainChanged', () => location.reload());
-  }
+  // Ricarica su cambio account/rete
+  window.ethereum.on('accountsChanged', () => location.reload());
+  window.ethereum.on('chainChanged', () => location.reload());
 }
 
 // CONNESSIONE AUTOMATICA
 async function autoConnect() {
-  if (!window.ethereum) return;
-  
   try {
     const accounts = await window.ethereum.request({ method: 'eth_accounts' });
     if (accounts.length > 0) {
-      // Verifica prima la rete
-      const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-      if (currentChainId.toLowerCase() !== ASSET_HUB_WESTEND_CHAIN_ID.toLowerCase()) {
-        await switchToAssetHubWestend();
-      }
+      // Forza la rete AssetHub Westend
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: ASSET_HUB_WESTEND_CHAIN_ID }]
+      });
       await setupWallet(accounts[0]);
     }
   } catch (err) {
-    console.log('Auto-connect failed:', err);
+    // Silenzioso - aspetta connessione manuale
+    console.log('Auto-connect non disponibile');
   }
 }
 
 // CONNESSIONE MANUALE
 async function connectWallet() {
   if (!window.ethereum) {
-    showError('MetaMask non rilevato. Installalo per procedere.');
+    showError('MetaMask non rilevato');
     return;
   }
 
   try {
-    // Richiedi account
+    // Richiedi account e cambia rete
     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-    if (accounts.length === 0) throw new Error('Nessun account trovato');
-    
-    // Verifica/cambia rete
-    const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
-    if (currentChainId.toLowerCase() !== ASSET_HUB_WESTEND_CHAIN_ID.toLowerCase()) {
-      await switchToAssetHubWestend();
-    }
-    
-    await setupWallet(accounts[0]);
-  } catch (err) {
-    if (err.code === 4001) {
-      showError('Connessione annullata dall\'utente.');
-    } else if (err.message?.includes('wallet_addEthereumChain')) {
-      showError('Impossibile aggiungere AssetHub Westend. Controlla la configurazione.');
-    } else {
-      showError(`Errore di connessione: ${err.message || 'Sconosciuto'}`);
-    }
-  }
-}
-
-// CAMBIA RETE AD ASSET-HUB WESTEND
-async function switchToAssetHubWestend() {
-  try {
     await window.ethereum.request({
       method: 'wallet_switchEthereumChain',
       params: [{ chainId: ASSET_HUB_WESTEND_CHAIN_ID }]
     });
-  } catch (switchError) {
-    if (switchError.code === 4902) {
-      // Aggiungi la rete
-      await window.ethereum.request({
-        method: 'wallet_addEthereumChain',
-        params: [{
-          chainId: ASSET_HUB_WESTEND_CHAIN_ID,
-          chainName: 'Polkadot AssetHub Westend',
-          rpcUrls: ['https://westend-asset-hub-eth-rpc.polkadot.io'],
-          nativeCurrency: {
-            name: 'WND',
-            symbol: 'WND',
-            decimals: 18
-          },
-          blockExplorerUrls: ['https://assethub-westend.subscan.io']
-        }]
-      });
+    
+    await setupWallet(accounts[0]);
+  } catch (err) {
+    if (err.code === 4001) {
+      showError('Connessione annullata');
     } else {
-      throw switchError;
+      showError('Impossibile connettersi ad AssetHub Westend');
+      console.error('Connection error:', err);
     }
   }
 }
 
-// CONFIGURA WALLET
+// CONFIGURAZIONE WALLET CON PROVIDER CORRETTO
 async function setupWallet(account) {
   currentAccount = account;
+  
+  // Usa direttamente la RPC di AssetHub Westend per evitare problemi
+  provider = new ethers.providers.Web3Provider(window.ethereum);
+  signer = provider.getSigner();
+  
+  // Verifica connessione alla rete corretta
+  const network = await provider.getNetwork();
+  if (network.chainId.toString() !== "420420421") {
+    showError('Sei su una rete diversa. Seleziona AssetHub Westend in MetaMask.');
+    return;
+  }
+  
+  contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+  
+  // Aggiorna UI
   addressDisplay.textContent = `${account.slice(0, 6)}...${account.slice(-4)}`;
   connectBtn.classList.add('hidden');
   accountInfo.classList.remove('hidden');
   dashboard.classList.remove('hidden');
-  
-  provider = new ethers.providers.Web3Provider(window.ethereum);
-  signer = provider.getSigner();
-  contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
   
   await refreshData();
 }
@@ -169,12 +174,8 @@ async function refreshData() {
     const hasClaimed = await contract.hasClaimed(currentAccount);
     
     hopBalance.textContent = ethers.utils.formatUnits(balance, 18);
-    
     hoppedStatus.textContent = hasHopped ? '✅' : '❌';
-    hoppedStatus.className = `stat-value ${hasHopped ? 'success' : 'error'}`;
-    
     wisdomStatus.textContent = hasClaimed ? '✅' : '❌';
-    wisdomStatus.className = `stat-value ${hasClaimed ? 'success' : 'error'}`;
     
     hopBtn.disabled = hasHopped;
     claimBtn.disabled = !hasHopped || hasClaimed;
@@ -184,67 +185,39 @@ async function refreshData() {
     }
   } catch (err) {
     console.error('Refresh error:', err);
-    showError('Impossibile caricare i dati. Sei su AssetHub Westend?');
+    showError('Errore nella lettura dei dati. Verifica la rete.');
   }
 }
 
 // ESEGUE HOP
 async function executeHop() {
-  if (!contract) {
-    showError('Wallet non connesso.');
-    return;
-  }
+  if (!contract) return;
   
   try {
-    console.log('Eseguendo Hop...');
     const tx = await contract.hop();
-    console.log('Transazione inviata:', tx.hash);
-    
-    const receipt = await tx.wait();
-    console.log('Transazione confermata:', receipt.transactionHash);
-    
+    await tx.wait();
     await refreshData();
   } catch (err) {
-    console.error('Hop error:', err);
-    if (err.code === 4001) {
-      showError('Transazione annullata.');
-    } else if (err.message?.includes('insufficient funds')) {
-      showError('Gas insufficiente. Ottieni WND dal faucet.');
-    } else if (err.message?.includes('execution reverted')) {
-      showError('Transazione fallita. Il contratto ha rifiutato l\'azione.');
-    } else {
-      showError(`Errore Hop: ${err.message || 'Sconosciuto'}`);
+    if (err.code !== 4001) {
+      showError('Hop fallito. Verifica saldo WND e HOP.');
+      console.error('Hop error:', err);
     }
   }
 }
 
 // CLAIM WISDOM
 async function claimWisdom() {
-  if (!contract) {
-    showError('Wallet non connesso.');
-    return;
-  }
+  if (!contract) return;
   
   try {
-    console.log('Richiedendo Wisdom...');
     const tx = await contract.claimWisdom();
-    console.log('Transazione inviata:', tx.hash);
-    
-    const receipt = await tx.wait();
-    console.log('Transazione confermata:', receipt.transactionHash);
-    
+    await tx.wait();
     wisdomSection.classList.remove('hidden');
     await refreshData();
   } catch (err) {
-    console.error('Claim error:', err);
-    if (err.code === 4001) {
-      showError('Transazione annullata.');
-    } else if (err.message?.includes('Need 1 HOP')) {
-      showError('Necessario almeno 1 token HOP per richiedere la saggezza.');
-    } else if (err.message?.includes('execution reverted')) {
-      showError('Transazione fallita. Verifica il tuo saldo HOP.');
-    } else {
-      showError(`Errore Claim: ${err.message || 'Sconosciuto'}`);
+    if (err.code !== 4001) {
+      showError('Claim fallito. Necessario almeno 1 HOP token.');
+      console.error('Claim error:', err);
     }
   }
 }
@@ -255,7 +228,7 @@ function showError(message) {
   errorModal.classList.remove('hidden');
 }
 
-// AVVIA
+// AVVIA L'APPLICAZIONE
 document.addEventListener('DOMContentLoaded', init);
 
 
