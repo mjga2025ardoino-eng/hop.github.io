@@ -1,175 +1,591 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RabbitToken DApp</title>
+    <title>The White Rabbit's Den - HOP In!</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.umd.min.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; color: #333; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .container { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 90%; max-width: 500px; text-align: center; }
-        button { background-color: #e6007a; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin: 10px 5px; transition: background 0.3s; }
-        button:hover { background-color: #c40068; }
-        button:disabled { background-color: #ccc; cursor: not-allowed; }
-        .info { margin: 20px 0; padding: 10px; border: 1px solid #eee; border-radius: 8px; font-size: 14px; word-break: break-all; }
-        #status { font-weight: bold; margin-top: 15px; color: #555; }
+        @import url('https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap');
+
+        body {
+            font-family: 'VT323', monospace;
+            background: linear-gradient(to bottom right, #0a0a0a, #1a1a1a);
+            color: #00ff41; /* Neo green */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-x: hidden;
+            text-shadow: 0 0 5px rgba(0, 255, 65, 0.5);
+        }
+
+        .container {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 2.5rem;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+            width: 95%;
+            max-width: 600px;
+            text-align: center;
+            border: 1px solid #008f11;
+            animation: glitch 1.5s infinite alternate;
+        }
+
+        @keyframes glitch {
+            0% { transform: translate(0); }
+            20% { transform: translate(-2px, 2px); }
+            40% { transform: translate(-2px, -2px); }
+            60% { transform: translate(2px, 2px); }
+            80% { transform: translate(2px, -2px); }
+            100% { transform: translate(0); }
+        }
+
+        h1 {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 2em;
+            margin-bottom: 20px;
+            color: #00ff41;
+            text-transform: uppercase;
+        }
+
+        p {
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+
+        button {
+            background-color: #008f11;
+            color: #000;
+            border: 2px solid #00ff41;
+            padding: 12px 25px;
+            border-radius: 5px;
+            font-size: 1.1em;
+            font-family: 'Press Start 2P', cursive;
+            cursor: pointer;
+            margin: 15px 10px;
+            transition: all 0.2s ease-in-out;
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            background-color: #00ff41;
+            color: #000;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.8);
+        }
+
+        button:disabled {
+            background-color: #333;
+            border-color: #00500a;
+            color: #888;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .info-box {
+            background: rgba(0, 255, 65, 0.1);
+            border: 1px dashed #008f11;
+            padding: 15px;
+            margin-top: 25px;
+            border-radius: 5px;
+            text-align: left;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        #status {
+            font-size: 1.2em;
+            margin-top: 25px;
+            color: #00ff41;
+            text-shadow: 0 0 8px rgba(0, 255, 65, 0.7);
+        }
+
+        #error-message {
+            color: #ff0041;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .toggle-abi {
+            font-size: 0.8em;
+            color: #00ff41;
+            text-decoration: underline;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        #abi-display {
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid #008f11;
+            max-height: 200px;
+            overflow-y: scroll;
+            margin-top: 10px;
+            padding: 10px;
+            text-align: left;
+            word-break: break-all;
+            white-space: pre-wrap;
+            font-size: 0.8em;
+            color: #00ff41;
+            display: none;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>Rabbit Token 🐇</h1>
-    <p>Interagisci con HOP su Westend Asset Hub</p>
+    <h1>Follow The White Rabbit!</h1>
+    <p>Dive deeper into the rabbit hole on Westend Asset Hub. Will you HOP and claim the ancient wisdom?</p>
 
-    <button id="connectBtn">Connetti MetaMask</button>
+    <button id="connectBtn">Connect MetaMask</button>
     
-    <div id="walletInfo" class="info" style="display:none;">
-        <strong>Account:</strong> <span id="account"></span><br>
-        <strong>Bilancio:</strong> <span id="balance">0</span> HOP
+    <div id="walletInfo" class="info-box" style="display:none;">
+        <strong>Connected Account:</strong> <span id="account"></span><br>
+        <strong>Your Balance:</strong> <span id="balance">0</span> HOP<br>
+        <strong>Has Hopped:</strong> <span id="hasHoppedStatus">No</span><br>
+        <strong>Has Claimed Wisdom:</strong> <span id="hasClaimedStatus">No</span>
     </div>
 
     <div id="actions" style="display:none;">
-        <button id="hopBtn">Esegui HOP</button>
-        <button id="claimBtn">Claim Wisdom</button>
+        <button id="hopBtn">Take the HOP (Register)</button>
+        <button id="claimBtn">Claim the Wisdom (Cost: 1 HOP)</button>
     </div>
 
-    <p id="status">In attesa di connessione...</p>
+    <p id="status">Awaiting your journey...</p>
+    <p id="error-message" style="display:none;"></p>
+
+    <div class="toggle-abi" onclick="toggleAbi()">[ Show/Hide Contract ABI ]</div>
+    <pre id="abi-display"></pre>
 </div>
 
 <script>
     const CONTRACT_ADDRESS = "0xc3432f679e465073dbc84F3B613a20f12EdB5dC1";
     const ABI = [
-        "function hop() external",
-        "function claimWisdom() external",
-        "function balanceOf(address) view returns (uint256)",
-        "function hasHopped(address) view returns (bool)",
-        "function hasClaimed(address) view returns (bool)"
+        // Your full ABI from Remix goes here
+        {
+            "inputs": [],
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+        },
+        {
+            "inputs": [],
+            "name": "AlreadyClaimed",
+            "type": "error"
+        },
+        {
+            "inputs": [],
+            "name": "claimWisdom",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "hop",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "HopFirst",
+            "type": "error"
+        },
+        {
+            "inputs": [],
+            "name": "InsufficientAllowance",
+            "type": "error"
+        },
+        {
+            "inputs": [],
+            "name": "InsufficientBalance",
+            "type": "error"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "to",
+                    "type": "address"
+                },
+                {
+                    "internalType": "uint256",
+                    "name": "amount",
+                    "type": "uint256"
+                }
+            ],
+            "name": "transfer",
+            "outputs": [
+                {
+                    "internalType": "bool",
+                    "name": "",
+                    "type": "bool"
+                }
+            ],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "TransferToZeroAddress",
+            "type": "error"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": true,
+                    "internalType": "address",
+                    "name": "who",
+                    "type": "address"
+                }
+            ],
+            "name": "Hopped",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": true,
+                    "internalType": "address",
+                    "name": "from",
+                    "type": "address"
+                },
+                {
+                    "indexed": true,
+                    "internalType": "address",
+                    "name": "to",
+                    "type": "address"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "uint256",
+                    "name": "value",
+                    "type": "uint256"
+                }
+            ],
+            "name": "Transfer",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": true,
+                    "internalType": "address",
+                    "name": "who",
+                    "type": "address"
+                },
+                {
+                    "indexed": false,
+                    "internalType": "string",
+                    "name": "message",
+                    "type": "string"
+                }
+            ],
+            "name": "WisdomClaimed",
+            "type": "event"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "name": "balanceOf",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "decimals",
+            "outputs": [
+                {
+                    "internalType": "uint8",
+                    "name": "",
+                    "type": "uint8"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "name": "hasClaimed",
+            "outputs": [
+                {
+                    "internalType": "bool",
+                    "name": "",
+                    "type": "bool"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "name": "hasHopped",
+            "outputs": [
+                {
+                    "internalType": "bool",
+                    "name": "",
+                    "type": "bool"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "name",
+            "outputs": [
+                {
+                    "internalType": "string",
+                    "name": "",
+                    "type": "string"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "oracle",
+            "outputs": [
+                {
+                    "internalType": "address",
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "symbol",
+            "outputs": [
+                {
+                    "internalType": "string",
+                    "name": "",
+                    "type": "string"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [],
+            "name": "totalSupply",
+            "outputs": [
+                {
+                    "internalType": "uint256",
+                    "name": "",
+                    "type": "uint256"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        }
     ];
 
-   const WESTEND_ASSET_HUB_PARAMS = {
-    chainId: "0x190a0714", // 420420420 decimale
-    chainName: "Westend Asset Hub",
-    nativeCurrency: { name: "Westend", symbol: "WND", decimals: 12 },
-    rpcUrls: ["https://westend-asset-hub-eth-rpc.polkadot.io"],
-    blockExplorerUrls: ["https://assethub-westend.subscan.io/"]
-};
+    const WESTEND_ASSET_HUB_PARAMS = {
+        chainId: "0x190a0714", // 420420420 decimal
+        chainName: "Westend Asset Hub",
+        nativeCurrency: { name: "Westend", symbol: "WND", decimals: 12 },
+        rpcUrls: ["https://westend-asset-hub-eth-rpc.polkadot.io"],
+        blockExplorerUrls: ["https://assethub-westend.subscan.io/"]
+    };
 
-async function switchNetwork() {
-    try {
-        await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: WESTEND_ASSET_HUB_PARAMS.chainId }],
-        });
-    } catch (switchError) {
-        // Errore 4902: la rete non è aggiunta a MetaMask
-        if (switchError.code === 4902) {
-            try {
-                await window.ethereum.request({
-                    method: 'wallet_addEthereumChain',
-                    params: [WESTEND_ASSET_HUB_PARAMS],
-                });
-            } catch (addError) {
-                console.error("Errore durante l'aggiunta della rete:", addError);
-                throw addError;
+    let provider, signer, contract;
+
+    async function switchNetwork() {
+        try {
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: WESTEND_ASSET_HUB_PARAMS.chainId }],
+            });
+            return true;
+        } catch (switchError) {
+            if (switchError.code === 4902) { // Network not added
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [WESTEND_ASSET_HUB_PARAMS],
+                    });
+                    return true;
+                } catch (addError) {
+                    console.error("Error adding network:", addError);
+                    showError("Failed to add Westend Asset Hub to MetaMask.");
+                    return false;
+                }
+            } else {
+                console.error("Error switching network:", switchError);
+                showError("Could not switch to Westend Asset Hub. Please do so manually or check console for details.");
+                return false;
             }
-        } else {
-            console.error("Errore durante lo switch della rete:", switchError);
-            throw switchError;
         }
     }
-}
-
-document.getElementById('connectBtn').onclick = async () => {
-    if (!window.ethereum) return alert("Installa MetaMask!");
-    
-    try {
-        document.getElementById('status').innerText = "Tentativo di connessione rete...";
-        await switchNetwork();
-        
-        provider = new ethers.BrowserProvider(window.ethereum);
-        const accounts = await provider.send("eth_requestAccounts", []);
-        
-        if (accounts.length > 0) {
-            signer = await provider.getSigner();
-            contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-            document.getElementById('status').innerText = "Connesso correttamente!";
-            await updateUI();
-        }
-    } catch (err) {
-        console.error("Dettaglio Errore:", err);
-        // Questo ti dirà esattamente cosa non va nella console F12
-        document.getElementById('status').innerText = "Errore connessione: " + (err.message || "Controlla la console");
-    }
-};
 
     async function updateUI() {
         const address = await signer.getAddress();
         const balance = await contract.balanceOf(address);
+        const hopped = await contract.hasHopped(address);
+        const claimed = await contract.hasClaimed(address);
+
         document.getElementById('account').innerText = address;
         document.getElementById('balance').innerText = ethers.formatUnits(balance, 18);
+        document.getElementById('hasHoppedStatus').innerText = hopped ? "Yes (You've entered the rabbit hole!)" : "No";
+        document.getElementById('hasClaimedStatus').innerText = claimed ? "Yes (Wisdom gained!)" : "No";
+        
         document.getElementById('walletInfo').style.display = 'block';
         document.getElementById('actions').style.display = 'block';
-        document.getElementById('connectBtn').innerText = "Wallet Connesso";
+        document.getElementById('connectBtn').innerText = "Wallet Connected";
+        document.getElementById('connectBtn').disabled = true;
+
+        document.getElementById('hopBtn').disabled = hopped; // Disable HOP if already hopped
+        document.getElementById('claimBtn').disabled = !hopped || claimed || balance < BigInt(10**18); // Disable claim if not hopped, already claimed, or insufficient balance
     }
 
     document.getElementById('connectBtn').onclick = async () => {
-        if (!window.ethereum) return alert("Installa MetaMask!");
+        if (!window.ethereum) {
+            showError("MetaMask not found. Please install it to join the adventure!");
+            return;
+        }
         
         try {
-            await switchNetwork();
-            provider = new ethers.BrowserProvider(window.ethereum);
-            await provider.send("eth_requestAccounts", []);
-            signer = await provider.getSigner();
-            contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+            document.getElementById('status').innerText = "Initiating connection to the Matrix...";
+            clearError();
+
+            const networkSwitched = await switchNetwork();
+            if (!networkSwitched) {
+                document.getElementById('status').innerText = "Connection failed. Please ensure MetaMask is on Westend Asset Hub.";
+                return;
+            }
             
-            document.getElementById('status').innerText = "Connesso correttamente.";
-            await updateUI();
+            provider = new ethers.BrowserProvider(window.ethereum);
+            const accounts = await provider.send("eth_requestAccounts", []);
+            
+            if (accounts.length > 0) {
+                signer = await provider.getSigner();
+                contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+                document.getElementById('status').innerText = "Connection Established. Welcome, Neo.";
+                await updateUI();
+            } else {
+                showError("No account connected. Please connect your MetaMask account.");
+            }
         } catch (err) {
-            console.error(err);
-            document.getElementById('status').innerText = "Errore connessione.";
+            console.error("Connection Error Details:", err);
+            showError("Connection failed. Check console (F12) for details, or ensure MetaMask is unlocked.");
         }
     };
 
     document.getElementById('hopBtn').onclick = async () => {
         try {
-            document.getElementById('status').innerText = "Conferma la transazione HOP su MetaMask...";
+            document.getElementById('status').innerText = "Confirming your HOP in MetaMask...";
+            clearError();
             const tx = await contract.hop();
-            document.getElementById('status').innerText = "Transazione inviata... attendi conferma.";
+            document.getElementById('status').innerText = "Transaction sent... Awaiting confirmation. The rabbit is fast!";
             await tx.wait();
-            document.getElementById('status').innerText = "HOP completato con successo!";
+            document.getElementById('status').innerText = "HOP successful! You've entered the rabbit hole.";
+            await updateUI();
         } catch (err) {
-            handleError(err);
+            handleContractError(err);
         }
     };
 
     document.getElementById('claimBtn').onclick = async () => {
         try {
-            document.getElementById('status').innerText = "Conferma la transazione CLAIM...";
+            document.getElementById('status').innerText = "Confirming Wisdom Claim in MetaMask...";
+            clearError();
             const tx = await contract.claimWisdom();
-            document.getElementById('status').innerText = "Transazione inviata... attendi conferma.";
+            document.getElementById('status').innerText = "Transaction sent... Awaiting confirmation. The truth awaits!";
             await tx.wait();
-            document.getElementById('status').innerText = "Wisdom Claimed! Hai bruciato 1 HOP.";
+            document.getElementById('status').innerText = "Wisdom Claimed! One HOP consumed. Check your console for the secret message!";
             await updateUI();
+            // TODO: Potresti voler leggere l'evento WisdomClaimed qui per mostrare il messaggio direttamente
+            // Se vuoi leggere l'evento:
+            // const receipt = await tx.wait();
+            // const wisdomEvent = receipt.logs.find(log => contract.interface.parseLog(log)?.name === "WisdomClaimed");
+            // if (wisdomEvent) {
+            //     const message = contract.interface.parseLog(wisdomEvent).args.message;
+            //     alert("The White Rabbit's Wisdom: " + message);
+            // }
         } catch (err) {
-            handleError(err);
+            handleContractError(err);
         }
     };
 
-    function handleError(err) {
-        // Gestione errori custom del contratto
+    function handleContractError(err) {
+        let errorMsg = "An unknown error occurred during transaction.";
         if (err.reason) {
-            document.getElementById('status').innerText = "Errore: " + err.reason;
+            errorMsg = "Error: " + err.reason;
         } else if (err.message.includes("HopFirst")) {
-            document.getElementById('status').innerText = "Errore: Devi fare HOP prima!";
+            errorMsg = "Error: You must HOP first!";
         } else if (err.message.includes("AlreadyClaimed")) {
-            document.getElementById('status').innerText = "Errore: Hai già richiesto la Wisdom!";
-        } else {
-            document.getElementById('status').innerText = "Errore durante la transazione.";
+            errorMsg = "Error: You have already claimed the Wisdom!";
+        } else if (err.message.includes("InsufficientBalance")) {
+            errorMsg = "Error: Insufficient HOP balance to claim wisdom (requires 1 HOP).";
+        } else if (err.code === "ACTION_REJECTED") {
+            errorMsg = "Transaction rejected by user in MetaMask.";
         }
+        showError(errorMsg);
         console.error(err);
     }
+
+    function showError(message) {
+        document.getElementById('error-message').innerText = message;
+        document.getElementById('error-message').style.display = 'block';
+        document.getElementById('status').style.display = 'none'; // Hide status on error
+    }
+
+    function clearError() {
+        document.getElementById('error-message').innerText = "";
+        document.getElementById('error-message').style.display = 'none';
+        document.getElementById('status').style.display = 'block'; // Show status again
+    }
+
+    function toggleAbi() {
+        const abiDisplay = document.getElementById('abi-display');
+        if (abiDisplay.style.display === 'none' || abiDisplay.style.display === '') {
+            abiDisplay.innerText = JSON.stringify(ABI, null, 2);
+            abiDisplay.style.display = 'block';
+        } else {
+            abiDisplay.style.display = 'none';
+        }
+    }
+
+    // Load ABI into display on page load (hidden by default)
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('abi-display').innerText = JSON.stringify(ABI, null, 2);
+    });
 </script>
 
 </body>
 </html>
-
