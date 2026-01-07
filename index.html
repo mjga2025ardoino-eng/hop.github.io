@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUSD | Alpha 1.0.12</title>
+    <title>PUSD | Alpha 1.0.13</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -13,20 +13,40 @@
         h1 { font-family: 'Unbounded', sans-serif; font-size: 3.5rem; margin: 0; letter-spacing: -3px; }
         .tagline { font-size: 0.8rem; color: #444; margin: 10px 0 30px 0; text-transform: uppercase; letter-spacing: 2px; }
         
-        .btn { font-family: 'Inter', sans-serif; background: var(--fg); color: var(--bg); border: none; padding: 20px; font-size: 0.85rem; font-weight: 700; border-radius: 4px; cursor: pointer; transition: 0.2s; text-transform: uppercase; width: 100%; margin-bottom: 12px; display: block; text-decoration: none; text-align: center; }
+        /* Uniform Button Style */
+        .btn { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--fg); 
+            color: var(--bg); 
+            border: none; 
+            height: 60px; /* Altezza fissa per uniformità */
+            font-size: 0.85rem; 
+            font-weight: 700; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            transition: 0.2s; 
+            text-transform: uppercase; 
+            width: 100%; 
+            margin-bottom: 12px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-sizing: border-box;
+        }
         .btn:hover { background: #ccc; }
         .btn-outline { background: transparent; color: var(--fg); border: 1px solid var(--border); }
-        .btn-faucet { border-color: var(--accent); color: var(--accent); font-size: 0.7rem; margin-top: 10px; }
+        .btn-faucet { border-color: var(--accent); color: var(--accent); font-size: 0.7rem; margin-top: 20px; }
         .btn:disabled { opacity: 0.1; cursor: not-allowed; }
 
-        /* Nexus PoH Game v2 */
+        /* Nexus PoH Game */
         #poh-container { border: 1px solid var(--border); padding: 25px; margin-bottom: 20px; display: none; background: #050505; }
         .poh-target-display { background: #111; padding: 10px; border-radius: 4px; margin-bottom: 20px; font-size: 1.2rem; text-align: center; letter-spacing: 10px; border: 1px dashed #333; font-family: 'Unbounded'; color: var(--accent); }
         .poh-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-        .poh-cell { background: #000; border: 1px solid #222; padding: 12px; cursor: pointer; font-size: 1.2rem; text-align: center; border-radius: 4px; transition: transform 0.3s; }
-        .poh-cell:hover { border-color: var(--fg); transform: rotate(15deg); }
+        .poh-cell { background: #000; border: 1px solid #222; padding: 12px; cursor: pointer; font-size: 1.2rem; text-align: center; border-radius: 4px; }
+        .poh-cell:hover { border-color: var(--fg); }
 
-        #timer-box { color: var(--err); font-family: 'Unbounded'; font-size: 1rem; margin: 20px 0; text-align: center; display: none; padding: 15px; border: 1px solid #200; }
+        #timer-box { color: var(--err); font-family: 'Unbounded'; font-size: 1rem; margin: 20px 0; text-align: center; display: none; padding: 15px; border: 1px solid #200; height: 60px; align-items: center; justify-content: center; }
         #status-bar { margin-top: 30px; font-size: 0.65rem; color: #333; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
         .dot { width: 6px; height: 6px; background: #111; border-radius: 50%; }
         .dot.active { background: #00ff00; }
@@ -34,7 +54,7 @@
 </head>
 <body>
 
-<div style="position: fixed; bottom: 30px; left: 30px; font-size: 10px; color: #1a1a1a; font-weight: 700;">ALPHA 1.0.12</div>
+<div style="position: fixed; bottom: 30px; left: 30px; font-size: 10px; color: #1a1a1a; font-weight: 700;">ALPHA 1.0.13</div>
 
 <div class="container">
     <h1>PUSD</h1>
@@ -60,7 +80,7 @@
 
     <div id="timer-box">00D 00H 00M 00S</div>
 
-    <a href="https://faucet.polkadot.io/westend" target="_blank" id="faucetBtn" class="btn btn-outline btn-faucet">Ottieni Westend Token (Gas)</a>
+    <a href="https://faucet.polkadot.io/westend" target="_blank" class="btn btn-outline btn-faucet">Richiedi Westend Token (Gas)</a>
 
     <div id="status-bar"><div id="status-dot" class="dot"></div><span id="status-text">Disconnected</span></div>
 </div>
@@ -99,7 +119,7 @@
             provider = new ethers.providers.Web3Provider(window.ethereum, "any");
             signer = provider.getSigner();
             
-            // Bypass Checksum forzato per PolkaVM
+            // Forziamo minuscolo per evitare checksum crash
             contract = new ethers.Contract(CONTRACT_RAW.toLowerCase(), [
                 "function claimToken() external",
                 "function lastClaim(address) view returns (uint256)"
@@ -117,14 +137,17 @@
             const next = (lastTime + (7 * 24 * 60 * 60)) * 1000;
             
             if (Date.now() < next && lastTime !== 0) {
-                document.getElementById('timer-box').style.display = 'block';
+                const box = document.getElementById('timer-box');
+                box.style.display = 'flex';
                 updateStatus("Cooldown Active", false);
                 startTimer(next);
             } else {
-                document.getElementById('btnShowPoH').style.display = 'block';
-                updateStatus("Verification Ready", true);
+                document.getElementById('btnShowPoH').style.display = 'flex';
+                updateStatus("Verification Required", true);
             }
-        } catch (e) { document.getElementById('btnShowPoH').style.display = 'block'; }
+        } catch (e) { 
+            document.getElementById('btnShowPoH').style.display = 'flex'; 
+        }
     }
 
     function triggerPoH() {
@@ -134,7 +157,7 @@
     }
 
     function initPoH() {
-        sequence = [...ICONS].sort(() => 0.5 - Math.random()).slice(0, 5); // 5 icone per sicurezza bot
+        sequence = [...ICONS].sort(() => 0.5 - Math.random()).slice(0, 5);
         userIndex = 0;
         document.getElementById('poh-target').innerText = sequence.join('');
         const grid = document.getElementById('poh-grid');
@@ -143,7 +166,6 @@
             const cell = document.createElement('div');
             cell.className = 'poh-cell';
             cell.innerText = icon;
-            cell.style.transform = `rotate(${Math.random() * 20 - 10}deg)`;
             cell.onclick = () => {
                 if(icon === sequence[userIndex]) {
                     userIndex++;
@@ -151,7 +173,7 @@
                     if(userIndex === 5) {
                         document.getElementById('poh-container').style.display = 'none';
                         document.getElementById('stepAction').style.display = 'block';
-                        updateStatus("Humanity Confirmed", true);
+                        updateStatus("Human Verified", true);
                     }
                 } else { initPoH(); }
             };
@@ -164,24 +186,21 @@
         try {
             btn.disabled = true;
             updateStatus("Uplinking...", true);
-
-            // Otteniamo i parametri Gas per il modello multi-dimensionale di PolkaVM
-            const feeData = await provider.getFeeData();
             
-            // Transazione configurata per pallet_revive (EIP-1559 + Buffer)
+            // Gestione gas multi-dimensionale per PolkaVM (pallet-revive)
+            const feeData = await provider.getFeeData();
             const tx = await contract.claimToken({
                 maxFeePerGas: feeData.maxFeePerGas,
                 maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
-                gasLimit: 1200000 // Buffer massiccio per coprire proof_size e storage_deposit
+                gasLimit: 1200000 // Copre ref_time + proof_size + storage_deposit
             });
 
             await tx.wait();
-            updateStatus("Claim Successful", true);
+            updateStatus("Success", true);
             location.reload();
         } catch (e) {
             btn.disabled = false;
-            updateStatus("RPC Revert - Check WND", false);
-            console.error(e);
+            updateStatus("RPC Revert", false);
         }
     }
 
