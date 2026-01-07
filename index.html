@@ -9,7 +9,7 @@
     <style>
         :root { --primary: #000; --accent: #fff; --grey: #666; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Space Grotesk', sans-serif; color: var(--accent); }
-        #artCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.4; pointer-events: none; }
+        #artCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.3; pointer-events: none; }
         .container { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; }
         .card { background: rgba(0, 0, 0, 0.95); backdrop-filter: blur(20px); border: 1px solid #333; padding: 3rem; border-radius: 2px; max-width: 420px; width: 90%; text-align: center; }
         h1 { font-size: 4rem; font-weight: 700; letter-spacing: -4px; margin: 0; line-height: 0.9; }
@@ -17,7 +17,6 @@
         .btn { background: var(--accent); color: var(--primary); border: none; padding: 16px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: all 0.3s; width: 100%; margin-top: 10px; }
         .btn:hover { background: #bbb; }
         .btn:disabled { background: #111; color: #333; cursor: not-allowed; border: 1px solid #222; }
-        .btn-outline { background: transparent; color: var(--accent); border: 1px solid var(--accent); margin-top: 10px; }
         #status { font-size: 0.7rem; margin-top: 1.5rem; color: var(--grey); text-transform: uppercase; letter-spacing: 1px; }
         #walletAddress { font-size: 0.6rem; color: #444; margin-top: 10px; font-family: monospace; word-break: break-all; }
         .disclaimer { position: absolute; bottom: 20px; font-size: 0.65rem; color: #444; letter-spacing: 1px; text-transform: uppercase; width: 100%; text-align: center; }
@@ -36,7 +35,7 @@
         <p id="walletAddress"></p>
 
         <div id="actionPanel" style="display:none;">
-            <button class="btn btn-outline" onclick="watchToken()">Add PUSD to Wallet</button>
+            <button class="btn" style="background:transparent; color:white; border:1px solid white;" onclick="watchToken()">Add PUSD to Wallet</button>
         </div>
 
         <p id="status">Awaiting Input...</p>
@@ -48,7 +47,7 @@
 </div>
 
 <script>
-    // --- DISEGNO LOGARITMICO ---
+    // --- SFONDO LOGARITMICO DINAMICO ---
     const canvas = document.getElementById('artCanvas');
     const ctx = canvas.getContext('2d');
     function drawArt() {
@@ -56,7 +55,7 @@
         ctx.fillStyle = "black"; ctx.fillRect(0, 0, canvas.width, canvas.height);
         const count = 40 + Math.floor(Math.random() * 40);
         for (let i = 1; i < count; i++) {
-            const size = (Math.random() * 20) / Math.log(i + 1.2);
+            const size = (Math.random() * 25) / Math.log(i + 1.5);
             ctx.beginPath();
             ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, size, 0, Math.PI * 2);
             ctx.fillStyle = "white"; ctx.fill();
@@ -64,9 +63,8 @@
     }
     drawArt();
 
-    // --- LOGICA BLOCKCHAIN ---
-    const TARGET_ID = 420420421;
-    const TARGET_HEX = '0x19082935';
+    // --- CONFIG ---
+    const TARGET_HEX = '0x19082935'; 
     const CONTRACT_ADDR = "0xdd1747d54fa8d568f9e25b5fbf08561fe6b39f41";
     const WESTEND_DATA = {
         chainId: TARGET_HEX,
@@ -76,35 +74,54 @@
         blockExplorerUrls: ['https://assethub-westend.subscan.io']
     };
 
-    let provider, signer, contract;
-    let step = "connect"; // connect -> verify -> claim
+    let signer, step = "connect";
+
+    // AUTO-RESUME dopo refresh
+    window.addEventListener('load', () => {
+        if (sessionStorage.getItem('pendingUplink') === 'true') {
+            sessionStorage.removeItem('pendingUplink');
+            handleLogic();
+        }
+    });
 
     async function handleLogic() {
-        if (!window.ethereum) return alert("MetaMask missing");
+        if (!window.ethereum) return alert("MetaMask non trovato");
 
         try {
-            // STEP 1: CONNESSIONE E RETE
             if (step === "connect") {
-                provider = new ethers.providers.Web3Provider(window.ethereum);
-                const { chainId } = await provider.getNetwork();
-
-                if (chainId !== TARGET_ID) {
-                    document.getElementById('status').innerText = "SWITCHING NETWORK...";
+                const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+                
+                // MECCANISMO 1: BYPASS SE LA RETE È GIÀ OK
+                if (currentChainId !== TARGET_HEX) {
+                    document.getElementById('status').innerText = "CONFIGURING NETWORK...";
                     try {
                         await window.ethereum.request({
                             method: 'wallet_switchEthereumChain',
                             params: [{ chainId: TARGET_HEX }],
                         });
+                        // Se lo switch ha successo, forziamo refresh per pulire il provider
+                        sessionStorage.setItem('pendingUplink', 'true');
+                        location.reload();
+                        return;
                     } catch (e) {
+                        // MECCANISMO 2: AGGIUNTA NUOVA RETE + REFRESH
                         if (e.code === 4902) {
-                            await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [WESTEND_DATA] });
+                            await window.ethereum.request({ 
+                                method: 'wallet_addEthereumChain', 
+                                params: [WESTEND_DATA] 
+                            });
+                            sessionStorage.setItem('pendingUplink', 'true');
+                            location.reload();
+                            return;
                         } else throw e;
                     }
-                    return; // Il browser potrebbe ricaricare dopo lo switch
                 }
 
-                const accounts = await provider.send("eth_requestAccounts", []);
+                // ESECUZIONE CONNESSIONE (Bypassato qui se tutto è già configurato)
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
                 signer = provider.getSigner();
+
                 document.getElementById('walletAddress').innerText = accounts[0];
                 document.getElementById('status').innerText = "HUMANITY CHECK REQUIRED";
                 document.getElementById('mainBtn').innerText = "PROOF THAT I AM HUMAN";
@@ -113,7 +130,6 @@
                 return;
             }
 
-            // STEP 2: VERIFICA UMANA
             if (step === "verify") {
                 document.getElementById('mainBtn').disabled = true;
                 document.getElementById('status').innerText = "ANALYZING BIOMETRICS...";
@@ -126,14 +142,12 @@
                 return;
             }
 
-            // STEP 3: CLAIM
             if (step === "claim") {
                 document.getElementById('status').innerText = "TRANSMITTING...";
                 document.getElementById('mainBtn').disabled = true;
                 
-                contract = new ethers.Contract(CONTRACT_ADDR, [
-                    "function claimToken() external",
-                    "function lastClaim(address) view returns (uint256)"
+                const contract = new ethers.Contract(CONTRACT_ADDR, [
+                    "function claimToken() external"
                 ], signer);
 
                 const tx = await contract.claimToken();
@@ -145,8 +159,8 @@
 
         } catch (err) {
             console.error(err);
-            document.getElementById('status').innerText = "LINK FAILED - RETRY";
-            document.getElementById('mainBtn').disabled = false;
+            document.getElementById('status').innerText = "UPLINK ERROR - RETRY";
+            sessionStorage.removeItem('pendingUplink');
         }
     }
 
