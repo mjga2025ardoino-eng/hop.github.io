@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUSD | Alpha 1.0.8</title>
+    <title>PUSD | Alpha 1.0.9</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -18,36 +18,36 @@
         .btn-outline { background: transparent; color: var(--fg); border: 1px solid var(--border); }
         .btn:disabled { opacity: 0.1; cursor: not-allowed; }
 
-        /* Nexus PoH Game */
         #poh-container { border: 1px solid var(--border); padding: 25px; margin-bottom: 20px; display: none; background: #050505; }
-        .poh-target-display { background: #111; padding: 10px; border-radius: 4px; margin-bottom: 20px; font-size: 1.2rem; text-align: center; letter-spacing: 10px; border: 1px dashed #333; font-family: 'Unbounded'; }
+        .poh-target-display { background: #111; padding: 10px; border-radius: 4px; margin-bottom: 20px; font-size: 1.2rem; text-align: center; letter-spacing: 10px; border: 1px dashed #333; font-family: 'Unbounded'; color: var(--accent); }
         .poh-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
         .poh-cell { background: #000; border: 1px solid #222; padding: 12px; cursor: pointer; font-size: 1rem; text-align: center; border-radius: 4px; }
-        .poh-cell:hover { border-color: var(--accent); }
+        .poh-cell:hover { border-color: var(--fg); }
 
-        #timer-box { color: var(--err); font-family: 'Unbounded'; font-size: 1rem; margin: 20px 0; text-align: center; display: none; }
+        #timer-box { color: var(--err); font-family: 'Unbounded'; font-size: 1rem; margin: 20px 0; text-align: center; display: none; padding: 15px; border: 1px solid #200; }
         #status-bar { margin-top: 30px; font-size: 0.65rem; color: #333; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
         .dot { width: 6px; height: 6px; background: #111; border-radius: 50%; }
-        .dot.active { background: #00ff00; box-shadow: 0 0 10px rgba(0,255,0,0.5); }
+        .dot.active { background: #00ff00; }
         .v { position: fixed; bottom: 30px; left: 30px; font-size: 10px; color: #1a1a1a; font-weight: 700; }
     </style>
 </head>
 <body>
 
-<div class="v">ALPHA 1.0.8</div>
+<div class="v">ALPHA 1.0.9</div>
 
 <div class="container">
     <h1>PUSD</h1>
     <div class="tagline">Westend Asset-Hub<br>Uplink Terminal</div>
 
-    <button class="btn" id="btnNet" onclick="addNetwork()">Configura Network</button>
-    
-    <button class="btn btn-outline" id="btnWallet" onclick="connectWallet()">Collega Wallet</button>
+    <div id="init-group">
+        <button class="btn" onclick="addNetwork()">Configura Network</button>
+        <button class="btn btn-outline" onclick="connectWallet()">Collega Wallet</button>
+    </div>
 
     <button class="btn" id="btnPoH" onclick="showPoH()" style="display:none;">Proof that you are human</button>
     
     <div id="poh-container">
-        <div style="font-size: 0.6rem; margin-bottom: 10px; text-align: center; color: var(--accent);">NEXUS SEQUENCE REQUIRED</div>
+        <div style="font-size: 0.6rem; margin-bottom: 10px; text-align: center; color: #666;">CLICCA LA SEQUENZA</div>
         <div class="poh-target-display" id="poh-target">----</div>
         <div class="poh-grid" id="poh-grid"></div>
     </div>
@@ -59,13 +59,14 @@
 
     <div id="timer-box">00D 00H 00M 00S</div>
 
-    <div id="status-bar"><div id="status-dot" class="dot"></div><span id="status-text">Ready</span></div>
+    <div id="status-bar"><div id="status-dot" class="dot"></div><span id="status-text">Disconnected</span></div>
 </div>
 
 <script>
-    const RAW_ADDR = "0xdD1747d54Fa8d568f9e25B5fBf08561fe6b39f41";
+    // Usiamo l'indirizzo tutto minuscolo per evitare errori di Checksum in ethers
+    const CONTRACT_ADDRESS = "0xdd1747d54fa8d568f9e25b5fbf08561fe6b39f41".toLowerCase();
     const TARGET_HEX = '0x19082935';
-    const NEXUS_ICONS = ['⚡', '🛡️', '📡', '💎', '🌑', '🚀', '🌀', '🔑', '🌿', '🧊', '🔥', '⚙️'];
+    const ICONS = ['⚡', '🛡️', '📡', '💎', '🌑', '🚀', '🌀', '🔑', '🌿', '🧊', '🔥', '⚙️'];
     
     let sequence = [], userIndex = 0;
     let signer, contract, provider;
@@ -76,6 +77,7 @@
     }
 
     async function addNetwork() {
+        if (!window.ethereum) return;
         try {
             await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{
                 chainId: TARGET_HEX,
@@ -85,60 +87,63 @@
                 blockExplorerUrls: ['https://assethub-westend.subscan.io']
             }] });
             updateStatus("Network Ready", true);
-        } catch (e) {}
+        } catch (e) { updateStatus("Error Setup", false); }
     }
 
     async function connectWallet() {
         if (!window.ethereum) return;
         try {
+            updateStatus("Connecting...", false);
             const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
             provider = new ethers.providers.Web3Provider(window.ethereum, "any");
             signer = provider.getSigner();
             
-            // FIX CHECKSUM: Trasforma l'indirizzo nel formato corretto prima di creare l'istanza
-            const cleanAddr = ethers.utils.getAddress(RAW_ADDR);
-            contract = new ethers.Contract(cleanAddr, [
+            // Creazione contratto senza validazione checksum esterna
+            contract = new ethers.Contract(CONTRACT_ADDRESS, [
                 "function claimToken() external",
                 "function lastClaim(address) view returns (uint256)"
             ], signer);
 
-            document.getElementById('btnNet').style.display = 'none';
-            document.getElementById('btnWallet').style.display = 'none';
-            
-            // Controlla subito se può fare il claim o se deve aspettare
+            document.getElementById('init-group').style.display = 'none';
             await checkCooldown(accounts[0]);
-        } catch (e) { console.error(e); updateStatus("RPC Checksum Error", false); }
+        } catch (e) { 
+            console.error(e); 
+            updateStatus("Connection Error", false); 
+        }
     }
 
     async function checkCooldown(addr) {
         try {
             const last = await contract.lastClaim(addr);
-            const next = (last.toNumber() + (7 * 24 * 60 * 60)) * 1000;
+            const lastTime = parseInt(last.toString());
+            const next = (lastTime + (7 * 24 * 60 * 60)) * 1000;
             
-            if (Date.now() < next && last.toNumber() !== 0) {
+            if (Date.now() < next && lastTime !== 0) {
                 document.getElementById('timer-box').style.display = 'block';
                 updateStatus("Cooldown Active", false);
                 startTimer(next);
             } else {
                 document.getElementById('btnPoH').style.display = 'block';
-                updateStatus("Human Verification Required", true);
+                updateStatus("Awaiting PoH", true);
             }
-        } catch (e) { document.getElementById('btnPoH').style.display = 'block'; }
+        } catch (e) { 
+            document.getElementById('btnPoH').style.display = 'block'; 
+        }
     }
 
     function showPoH() {
         document.getElementById('btnPoH').style.display = 'none';
         document.getElementById('poh-container').style.display = 'block';
-        initNexusPoH();
+        initGame();
     }
 
-    function initNexusPoH() {
-        sequence = [...NEXUS_ICONS].sort(() => 0.5 - Math.random()).slice(0, 4);
+    function initGame() {
+        sequence = [...ICONS].sort(() => 0.5 - Math.random()).slice(0, 4);
         userIndex = 0;
         document.getElementById('poh-target').innerText = sequence.join('');
         const grid = document.getElementById('poh-grid');
         grid.innerHTML = '';
-        [...NEXUS_ICONS].sort(() => 0.5 - Math.random()).forEach(icon => {
+        [...ICONS].sort(() => 0.5 - Math.random()).forEach(icon => {
             const cell = document.createElement('div');
             cell.className = 'poh-cell';
             cell.innerText = icon;
@@ -150,9 +155,9 @@
                     if(userIndex === 4) {
                         document.getElementById('poh-container').style.display = 'none';
                         document.getElementById('claim-section').style.display = 'block';
-                        updateStatus("Human Verified", true);
+                        updateStatus("Humanity Verified", true);
                     }
-                } else { initNexusPoH(); }
+                } else { initGame(); }
             };
             grid.appendChild(cell);
         });
@@ -162,14 +167,15 @@
         const btn = document.getElementById('btnClaim');
         try {
             btn.disabled = true;
-            updateStatus("Broadcasting...", true);
+            updateStatus("Claiming...", true);
+            // Lasciamo che la rete gestisca il gas in autonomia
             const tx = await contract.claimToken();
             await tx.wait();
-            updateStatus("Claim Successful", true);
+            updateStatus("Success!", true);
             location.reload();
         } catch (e) {
             btn.disabled = false;
-            updateStatus("Transaction Failed", false);
+            updateStatus("Claim Failed", false);
         }
     }
 
@@ -188,7 +194,7 @@
 
     async function addPUSD() {
         await window.ethereum.request({ method: 'wallet_watchAsset', params: { 
-            type: 'ERC20', options: { address: RAW_ADDR, symbol: 'PUSD', decimals: 18 } 
+            type: 'ERC20', options: { address: CONTRACT_ADDRESS, symbol: 'PUSD', decimals: 18 } 
         }});
     }
 </script>
