@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUSD | Alpha 0.6</title>
+    <title>PUSD | Alpha 0.7</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -13,54 +13,53 @@
         h1 { font-family: 'Unbounded', sans-serif; font-size: 3.5rem; margin: 0; letter-spacing: -2px; }
         .tagline { font-size: 0.8rem; color: #888; margin: 10px 0 40px 0; text-transform: uppercase; letter-spacing: 2px; }
         
-        /* Unico Pulsante Intelligente */
-        #smartBtn { font-family: 'Inter', sans-serif; background: var(--fg); color: var(--bg); border: none; padding: 20px; font-size: 1rem; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; width: 100%; }
-        #smartBtn:hover { transform: translateY(-2px); opacity: 0.9; }
-        #smartBtn:disabled { opacity: 0.2; cursor: not-allowed; }
-        
-        .secondary { background: transparent; color: var(--fg); border: 1px solid var(--border); padding: 12px; font-size: 0.7rem; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px; text-transform: uppercase; font-weight: 700; }
+        .btn { font-family: 'Inter', sans-serif; background: var(--fg); color: var(--bg); border: none; padding: 20px; font-size: 0.9rem; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; width: 100%; margin-bottom: 12px; }
+        .btn:hover { transform: translateY(-2px); opacity: 0.9; }
+        .btn:disabled { opacity: 0.2; cursor: not-allowed; }
+        .btn-outline { background: transparent; color: var(--fg); border: 1px solid var(--border); }
 
         #status-bar { margin-top: 30px; font-size: 0.7rem; color: #666; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
         .dot { width: 6px; height: 6px; background: #333; border-radius: 50%; }
         .dot.active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
         
-        #cooldown-box { margin-top: 20px; padding: 15px; border: 1px solid var(--border); border-radius: 8px; display: none; background: rgba(255, 62, 62, 0.05); }
+        #cooldown-box { margin-top: 20px; padding: 15px; border: 1px solid var(--border); border-radius: 8px; display: none; background: rgba(255, 62, 62, 0.05); text-align: center; }
         #timer-value { color: var(--error); font-family: 'Unbounded', sans-serif; font-size: 1.2rem; font-weight: 700; }
         
-        #wallet-info { font-family: monospace; font-size: 0.65rem; color: #444; margin-top: 15px; word-break: break-all; text-align: center; }
+        #wallet-info { font-family: monospace; font-size: 0.65rem; color: #444; margin-top: 15px; text-align: center; word-break: break-all; }
         .v { position: fixed; bottom: 30px; left: 30px; font-size: 10px; color: #333; font-weight: 700; }
     </style>
 </head>
 <body>
 
-<div class="v">ALPHA 0.6</div>
+<div class="v">ALPHA 0.7</div>
 
 <div class="container">
     <h1>PUSD</h1>
     <div class="tagline">Experimental Faucet<br>Westend Asset-Hub</div>
 
-    <div class="card">
-        <button id="smartBtn" onclick="handleSmartLogic()">Initialize Uplink</button>
-        
-        <div id="cooldown-box">
-            <div style="font-size: 0.6rem; color: #666; margin-bottom: 5px;">TIME UNTIL NEXT ACCESS</div>
-            <div id="timer-value">00D 00H 00M 00S</div>
-        </div>
-
-        <div id="extraActions" style="display:none;">
-            <button class="secondary" onclick="watchToken()">Add PUSD to MetaMask</button>
-        </div>
-
-        <div id="status-bar"><div id="status-dot" class="dot"></div><span id="status-text">System Ready</span></div>
-        <div id="wallet-info"></div>
+    <div id="setupSection">
+        <button class="btn" id="btnNetwork" onclick="addNetwork()">1. Setup Westend Network</button>
+        <button class="btn btn-outline" id="btnConnect" onclick="connectWallet()">2. Connect Wallet</button>
     </div>
+
+    <div id="actionSection" style="display:none;">
+        <button class="btn" id="btnClaim" onclick="handleClaim()">Proof of Humanity</button>
+        <button class="btn btn-outline" onclick="watchToken()">Add Token to Wallet</button>
+    </div>
+
+    <div id="cooldown-box">
+        <div style="font-size: 0.6rem; color: #666; margin-bottom: 5px;">NEXT ACCESS AVAILABLE IN</div>
+        <div id="timer-value">00D 00H 00M 00S</div>
+    </div>
+
+    <div id="status-bar"><div id="status-dot" class="dot"></div><span id="status-text">Ready</span></div>
+    <div id="wallet-info"></div>
 </div>
 
 <script>
-    const TARGET_DEC = 420420421;
     const TARGET_HEX = '0x19082935';
     const CONTRACT_ADDR = "0xdd1747d54fa8d568f9e25b5fbf08561fe6b39f41";
-    const NETWORK_DATA = {
+    const NETWORK_PARAMS = {
         chainId: TARGET_HEX,
         chainName: 'Asset-Hub Westend',
         nativeCurrency: { name: 'WND', symbol: 'WND', decimals: 18 },
@@ -68,111 +67,96 @@
         blockExplorerUrls: ['https://assethub-westend.subscan.io']
     };
 
-    let signer, contract, currentState = "init"; 
+    let signer, contract, claimStep = "verify";
 
-    // --- AUTO-DETECTION: Monitora i cambi di account o rete senza bisogno di clic ---
-    if (window.ethereum) {
-        window.ethereum.on('chainChanged', () => location.reload());
-        window.ethereum.on('accountsChanged', () => location.reload());
+    // --- MONITORAGGIO COSTANTE (Il Bypass) ---
+    async function monitorNetwork() {
+        if (!window.ethereum) return;
+        const currentChain = await window.ethereum.request({ method: 'eth_chainId' });
+        if (currentChain === TARGET_HEX) {
+            document.getElementById('btnNetwork').style.display = 'none';
+            document.getElementById('btnConnect').classList.remove('btn-outline');
+            updateStatus("Network Validated", true);
+        }
+    }
+    setInterval(monitorNetwork, 1000); // Controlla ogni secondo se la rete è cambiata
+
+    // --- 1. SOLO AGGIUNTA RETE ---
+    async function addNetwork() {
+        try {
+            updateStatus("Requesting Network Add...", false);
+            await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [NETWORK_PARAMS]
+            });
+        } catch (e) { console.error(e); }
     }
 
-    async function handleSmartLogic() {
-        if (!window.ethereum) return alert("MetaMask missing");
-        const btn = document.getElementById('smartBtn');
-
+    // --- 2. SOLO CONNESSIONE ---
+    async function connectWallet() {
+        if (!window.ethereum) return;
         try {
-            // STEP 1: GESTIONE RETE
-            const currentChainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
-            if (parseInt(currentChainIdHex, 16) !== TARGET_DEC) {
-                updateStatus("Switching to Westend...", false);
-                try {
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: TARGET_HEX }],
-                    });
-                } catch (err) {
-                    if (err.code === 4902) {
-                        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [NETWORK_DATA] });
-                    }
-                }
-                return; // Esce e aspetta il reload automatico gestito da .on('chainChanged')
-            }
-
-            // STEP 2: CONNESSIONE WALLET
-            if (currentState === "init") {
-                updateStatus("Linking Account...", false);
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-                const provider = new ethers.providers.Web3Provider(window.ethereum);
-                signer = provider.getSigner();
-                contract = new ethers.Contract(CONTRACT_ADDR, [
-                    "function claimToken() external",
-                    "function lastClaim(address) view returns (uint256)"
-                ], signer);
-
-                document.getElementById('wallet-info').innerText = accounts[0];
-                document.getElementById('extraActions').style.display = "block";
-                
-                // Controlla se l'utente deve aspettare
-                const isLocked = await checkCooldown(accounts[0]);
-                if (!isLocked) {
-                    btn.innerText = "Proof of Humanity";
-                    currentState = "verify";
-                }
+            const currentChain = await window.ethereum.request({ method: 'eth_chainId' });
+            if (currentChain !== TARGET_HEX) {
+                updateStatus("Please use Setup Network first", false);
                 return;
             }
 
-            // STEP 3: VERIFICA UMANA
-            if (currentState === "verify") {
-                btn.disabled = true;
-                updateStatus("Processing Biometrics...", true);
-                setTimeout(() => {
-                    btn.disabled = false;
-                    btn.innerText = "Claim 1.00 PUSD";
-                    currentState = "claim";
-                    updateStatus("Human Verified", true);
-                }, 1500);
-                return;
-            }
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            signer = provider.getSigner();
+            contract = new ethers.Contract(CONTRACT_ADDR, [
+                "function claimToken() external",
+                "function lastClaim(address) view returns (uint256)"
+            ], signer);
 
-            // STEP 4: CLAIM
-            if (currentState === "claim") {
+            document.getElementById('setupSection').style.display = 'none';
+            document.getElementById('actionSection').style.display = 'block';
+            document.getElementById('wallet-info').innerText = accounts[0];
+            
+            await checkCooldown(accounts[0]);
+        } catch (e) { updateStatus("Connection Failed", false); }
+    }
+
+    // --- 3. LOGICA CLAIM ---
+    async function handleClaim() {
+        const btn = document.getElementById('btnClaim');
+        if (claimStep === "verify") {
+            btn.disabled = true;
+            updateStatus("Analyzing Identity...", true);
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerText = "Claim 1.00 PUSD";
+                claimStep = "claim";
+                updateStatus("Human Verified", true);
+            }, 1500);
+        } else {
+            try {
                 btn.disabled = true;
-                updateStatus("Broadcasting...", true);
+                updateStatus("Sending Transaction...", true);
                 const tx = await contract.claimToken({ gasLimit: 250000 });
                 await tx.wait();
-                updateStatus("Transfer Successful", true);
-                btn.innerText = "Received";
-                setTimeout(() => location.reload(), 3000);
+                updateStatus("PUSD Received", true);
+                location.reload();
+            } catch (e) {
+                updateStatus("Transaction Error", false);
+                btn.disabled = false;
             }
-
-        } catch (e) {
-            console.error(e);
-            updateStatus("Link Error", false);
         }
     }
 
     async function checkCooldown(addr) {
-        try {
-            const last = await contract.lastClaim(addr);
-            const lastSec = last.toNumber();
-            if (lastSec === 0) return false;
-
-            const next = (lastSec + (7 * 24 * 60 * 60)) * 1000;
-            if (Date.now() < next) {
-                const btn = document.getElementById('smartBtn');
-                btn.disabled = true;
-                btn.innerText = "Uplink Locked";
-                document.getElementById('cooldown-box').style.display = "block";
-                updateStatus("Cooldown Active", false);
-                startTimer(next);
-                return true;
-            }
-            return false;
-        } catch (e) { return false; }
+        const last = await contract.lastClaim(addr);
+        const next = (last.toNumber() + (7 * 24 * 60 * 60)) * 1000;
+        if (Date.now() < next) {
+            document.getElementById('btnClaim').disabled = true;
+            document.getElementById('btnClaim').innerText = "Access Locked";
+            document.getElementById('cooldown-box').style.display = "block";
+            startTimer(next);
+        }
     }
 
     function startTimer(target) {
-        const val = document.getElementById('timer-value');
         const itv = setInterval(() => {
             const diff = target - Date.now();
             if (diff <= 0) { clearInterval(itv); location.reload(); }
@@ -180,7 +164,7 @@
             const h = Math.floor((diff % 86400000) / 3600000);
             const m = Math.floor((diff % 3600000) / 60000);
             const s = Math.floor((diff % 60000) / 1000);
-            val.innerText = `${String(d).padStart(2, '0')}D ${String(h).padStart(2, '0')}H ${String(m).padStart(2, '0')}M ${String(s).padStart(2, '0')}S`;
+            document.getElementById('timer-value').innerText = `${d}D ${h}H ${m}M ${s}S`;
         }, 1000);
     }
 
