@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUSD | Alpha 1.0.1</title>
+    <title>PUSD | Alpha 1.0.2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -23,13 +23,13 @@
         #cooldown-box { margin-top: 20px; padding: 15px; border: 1px solid var(--border); border-radius: 8px; display: none; background: rgba(230, 0, 122, 0.05); text-align: center; }
         #timer-value { color: var(--accent); font-family: 'Unbounded', sans-serif; font-size: 1.2rem; font-weight: 700; }
         #wallet-info { font-family: monospace; font-size: 0.65rem; color: #444; margin-top: 15px; text-align: center; word-break: break-all; }
-        #debug-log { font-size: 0.6rem; color: #ff3e3e; margin-top: 10px; font-family: monospace; text-align: center; display: none; }
+        #debug-log { font-size: 0.6rem; color: #ff3e3e; margin-top: 10px; font-family: monospace; text-align: center; display: none; background: #110000; padding: 5px; }
         .v { position: fixed; bottom: 30px; left: 30px; font-size: 10px; color: #333; font-weight: 700; }
     </style>
 </head>
 <body>
 
-<div class="v">ALPHA 1.0.1</div>
+<div class="v">ALPHA 1.0.2</div>
 
 <div class="container">
     <h1>PUSD</h1>
@@ -59,7 +59,8 @@
 
 <script>
     const TARGET_HEX = '0x19082935';
-    const CONTRACT_ADDR = "0xdD1747d54Fa8d568f9e25B5fBf08561fe6b39f41";
+    // FIXED: Indirizzo forzato in minuscolo per bypassare l'errore INVALID_ARGUMENT (checksum)
+    const CONTRACT_ADDR = "0xdd1747d54fa8d568f9e25b5fbf08561fe6b39f41".toLowerCase();
     
     const CONTRACT_ABI = [{"type":"constructor","inputs":[],"stateMutability":"nonpayable"},{"name":"Approval","type":"event","inputs":[{"name":"owner","type":"address","indexed":true,"internalType":"address"},{"name":"spender","type":"address","indexed":true,"internalType":"address"},{"name":"val","type":"uint256","indexed":false,"internalType":"uint256"}],"anonymous":false},{"name":"Transfer","type":"event","inputs":[{"name":"from","type":"address","indexed":true,"internalType":"address"},{"name":"to","type":"address","indexed":true,"internalType":"address"},{"name":"val","type":"uint256","indexed":false,"internalType":"uint256"}],"anonymous":false},{"name":"CLAIM_AMT","type":"function","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"WEEK","type":"function","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"allowance","type":"function","inputs":[{"name":"","type":"address","internalType":"address"},{"name":"","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"approve","type":"function","inputs":[{"name":"sp","type":"address","internalType":"address"},{"name":"amt","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"name":"balanceOf","type":"function","inputs":[{"name":"","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"claimToken","type":"function","inputs":[],"outputs":[],"stateMutability":"nonpayable"},{"name":"decimals","type":"function","inputs":[],"outputs":[{"name":"","type":"uint8","internalType":"uint8"}],"stateMutability":"view"},{"name":"lastClaim","type":"function","inputs":[{"name":"","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"name","type":"function","inputs":[],"outputs":[{"name":"","type":"string","internalType":"string"}],"stateMutability":"view"},{"name":"owner","type":"function","inputs":[],"outputs":[{"name":"","type":"address","internalType":"address"}],"stateMutability":"view"},{"name":"symbol","type":"function","inputs":[],"outputs":[{"name":"","type":"string","internalType":"string"}],"stateMutability":"view"},{"name":"totalSupply","type":"function","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"transfer","type":"function","inputs":[{"name":"to","type":"address","internalType":"address"},{"name":"amount","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"name":"transferFrom","type":"function","inputs":[{"name":"frm","type":"address","internalType":"address"},{"name":"to","type":"address","internalType":"address"},{"name":"amt","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"}];
 
@@ -103,7 +104,10 @@
             document.getElementById('wallet-info').innerText = accounts[0];
             
             await checkCooldown(accounts[0]);
-        } catch (e) { updateStatus("Connection Failed", false); }
+        } catch (e) { 
+            console.error(e);
+            updateStatus("Connection Failed", false); 
+        }
     }
 
     async function handleClaim() {
@@ -125,8 +129,7 @@
                 btn.disabled = true;
                 updateStatus("Awaiting Signature...", true);
 
-                // Rimuoviamo il gasLimit manuale e lasciamo che MetaMask calcoli il necessario
-                // Questo risolve i problemi dove il gas stimato manualmente viene rifiutato dalla parachain
+                // Tentativo di invio senza parametri manuali
                 const tx = await contract.claimToken();
 
                 updateStatus("Broadcasting...", true);
@@ -139,8 +142,7 @@
                 btn.disabled = false;
                 updateStatus("Error Detected", false);
                 debug.style.display = "block";
-                // Estraiamo il messaggio d'errore leggibile
-                debug.innerText = e.data ? e.data.message : (e.error ? e.error.message : e.message);
+                debug.innerText = e.reason || e.message;
                 console.error("Full Error:", e);
             }
         }
@@ -156,7 +158,7 @@
                 document.getElementById('cooldown-box').style.display = "block";
                 startTimer(next);
             }
-        } catch(e) {}
+        } catch(e) { console.error("Cooldown Check Error:", e); }
     }
 
     function startTimer(target) {
