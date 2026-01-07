@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUSD Paseo | Alpha 0.0.2</title>
+    <title>PUSD Paseo | Alpha 0.0.3</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -11,7 +11,6 @@
         body { background: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
         .container { width: 100%; max-width: 400px; padding: 20px; text-align: center; position: relative; }
         
-        /* Version Tracker */
         .version-tag { position: fixed; bottom: 20px; left: 20px; font-family: 'Unbounded'; font-size: 10px; color: #333; letter-spacing: 1px; }
         
         h1 { font-family: 'Unbounded', sans-serif; font-size: 3rem; margin: 0; letter-spacing: -2px; }
@@ -43,21 +42,21 @@
 </head>
 <body>
 
-<div class="version-tag">ALPHA 0.0.2</div>
+<div class="version-tag">ALPHA 0.0.3</div>
 
 <div class="container">
     <h1>PUSD</h1>
     <div class="tagline">Passet Hub Terminal</div>
 
     <div id="ui-connect">
-        <button class="btn" onclick="addPaseoNet()">1. Add Paseo Network</button>
+        <button class="btn" onclick="forceAddNetwork()">1. Add Paseo Network</button>
         <button class="btn btn-outline" onclick="connectWallet()">2. Connect Wallet</button>
     </div>
 
     <div id="timer-box">COOLDOWN ACTIVE</div>
 
     <div id="ui-poh-start" style="display:none;">
-        <button class="btn" onclick="openNexus()">Start Human Verification</button>
+        <button class="btn" onclick="openNexus()">Verify Humanity</button>
     </div>
 
     <div id="poh-box">
@@ -70,41 +69,58 @@
         <button class="btn btn-outline" onclick="watchPUSD()">Add Asset to Wallet</button>
     </div>
 
-    <div id="status">Network: Disconnected</div>
+    <div id="status">Network Required</div>
     
-    <a href="https://faucet.polkadot.io/paseo" target="_blank" style="color: #222; font-size: 10px; text-decoration: none; margin-top: 40px; display: block; font-weight: 700;">REQUEST PAS TESTNET TOKENS</a>
+    <a href="https://faucet.polkadot.io/paseo" target="_blank" style="color: #222; font-size: 10px; text-decoration: none; margin-top: 40px; display: block; font-weight: 700;">GET PAS TOKENS</a>
 </div>
 
 <script>
-    // Update this with your deployed contract address on Paseo
     const CONTRACT_ADDR = "0xdd1747d54fa8d568f9e25b5fbf08561fe6b39f41";
-    const ABI = [
-        "function claimToken() external", 
-        "function lastClaim(address) view returns (uint256)"
-    ];
+    const ABI = ["function claimToken() external", "function lastClaim(address) view returns (uint256)"];
     const ICONS = ['⚡', '🛡️', '📡', '💎', '🌑', '🚀', '🌀', '🔑', '🌿', '🧊', '🔥', '⚙️'];
+    const CHAIN_ID_DEC = 420420422;
+    const CHAIN_ID_HEX = "0x190bc416"; // 420420422 in hex
     
     let signer, contract, seq = [], idx = 0;
 
-    async function addPaseoNet() {
+    async function forceAddNetwork() {
+        if (!window.ethereum) return alert("MetaMask not found");
         try {
             await window.ethereum.request({
                 method: 'wallet_addEthereumChain',
                 params: [{
-                    chainId: '0x190bc416', // 420420422
+                    chainId: CHAIN_ID_HEX,
                     chainName: 'Polkadot Hub TestNet',
                     nativeCurrency: { name: 'PAS', symbol: 'PAS', decimals: 18 },
                     rpcUrls: ['https://testnet-passet-hub-eth-rpc.polkadot.io'],
                     blockExplorerUrls: ['https://blockscout-passet-hub.parity-testnet.parity.io']
                 }]
             });
-            document.getElementById('status').innerText = "Network: Paseo Ready";
-        } catch (e) { console.error(e); }
+            document.getElementById('status').innerText = "Network: Paseo Added";
+        } catch (e) {
+            console.error("Network Setup Error:", e);
+            document.getElementById('status').innerText = "Setup Error";
+        }
     }
 
     async function connectWallet() {
-        if (!window.ethereum) return alert("Install MetaMask");
+        if (!window.ethereum) return;
         const provider = new ethers.providers.Web3Provider(window.ethereum);
+        
+        // Check if the current network is correct
+        const { chainId } = await provider.getNetwork();
+        if (chainId !== CHAIN_ID_DEC) {
+            document.getElementById('status').innerText = "Switching Network...";
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: CHAIN_ID_HEX }],
+                });
+            } catch (err) {
+                if (err.code === 4902) return forceAddNetwork();
+            }
+        }
+
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
         contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
@@ -134,7 +150,7 @@
                 document.getElementById('status').innerText = "Status: Cooldown";
             } else {
                 document.getElementById('ui-poh-start').style.display = 'block';
-                document.getElementById('status').innerText = "Status: Identity Required";
+                document.getElementById('status').innerText = "Status: Ready";
             }
         } catch (e) {
             document.getElementById('ui-poh-start').style.display = 'block';
@@ -159,9 +175,9 @@
                     if(idx === 4) {
                         document.getElementById('poh-box').style.display = 'none';
                         document.getElementById('ui-claim').style.display = 'block';
-                        document.getElementById('status').innerText = "Status: Identity Confirmed";
+                        document.getElementById('status').innerText = "Status: Human Verified";
                     }
-                } else { openNexus(); }
+                } else { step = 0; openNexus(); }
             };
             grid.appendChild(cell);
         });
@@ -171,15 +187,15 @@
         const btn = document.getElementById('claim-exec');
         try {
             btn.disabled = true;
-            document.getElementById('status').innerText = "Broadcasting to Paseo...";
+            document.getElementById('status').innerText = "Signing...";
             const tx = await contract.claimToken();
-            document.getElementById('status').innerText = "Awaiting block... ⏳";
+            document.getElementById('status').innerText = "Confirming... ⏳";
             await tx.wait();
-            document.getElementById('status').innerText = "Claim Success! 🎉";
+            document.getElementById('status').innerText = "Success! 🎉";
             setTimeout(() => location.reload(), 3000);
         } catch (e) {
             console.error(e);
-            document.getElementById('status').innerText = "Failed: Check PAS Balance";
+            document.getElementById('status').innerText = "Reverted (Low PAS?)";
             btn.disabled = false;
         }
     }
