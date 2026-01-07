@@ -7,7 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
     <style>
-        :root { --primary: #000; --accent: #fff; --grey: #666; }
+        :root { --primary: #000; --accent: #fff; --grey: #666; --red: #ff3e3e; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Space Grotesk', sans-serif; color: var(--accent); }
         #artCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.3; pointer-events: none; }
         .container { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; }
@@ -19,6 +19,7 @@
         .btn:disabled { background: #111; color: #333; cursor: not-allowed; border: 1px solid #222; }
         #status { font-size: 0.7rem; margin-top: 1.5rem; color: var(--grey); text-transform: uppercase; letter-spacing: 1px; }
         #walletAddress { font-size: 0.6rem; color: #444; margin-top: 10px; font-family: monospace; word-break: break-all; }
+        .timer-box { margin-top: 15px; padding: 10px; border: 1px solid #222; color: var(--red); font-size: 0.8rem; display: none; font-weight: bold; }
         .disclaimer { position: absolute; bottom: 20px; font-size: 0.65rem; color: #444; letter-spacing: 1px; text-transform: uppercase; width: 100%; text-align: center; }
     </style>
 </head>
@@ -35,6 +36,7 @@
         <p id="walletAddress"></p>
 
         <div id="actionPanel" style="display:none;">
+            <div id="timerDisplay" class="timer-box"></div>
             <button class="btn" style="background:transparent; color:white; border:1px solid white;" onclick="watchToken()">Add PUSD to Wallet</button>
         </div>
 
@@ -47,14 +49,13 @@
 </div>
 
 <script>
-    // --- SFONDO LOGARITMICO DINAMICO ---
+    // --- SFONDO LOGARITMICO ---
     const canvas = document.getElementById('artCanvas');
     const ctx = canvas.getContext('2d');
     function drawArt() {
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
         ctx.fillStyle = "black"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-        const count = 40 + Math.floor(Math.random() * 40);
-        for (let i = 1; i < count; i++) {
+        for (let i = 1; i < 60; i++) {
             const size = (Math.random() * 25) / Math.log(i + 1.5);
             ctx.beginPath();
             ctx.arc(Math.random() * canvas.width, Math.random() * canvas.height, size, 0, Math.PI * 2);
@@ -74,9 +75,8 @@
         blockExplorerUrls: ['https://assethub-westend.subscan.io']
     };
 
-    let signer, step = "connect";
+    let signer, contract, step = "connect";
 
-    // AUTO-RESUME dopo refresh
     window.addEventListener('load', () => {
         if (sessionStorage.getItem('pendingUplink') === 'true') {
             sessionStorage.removeItem('pendingUplink');
@@ -91,25 +91,15 @@
             if (step === "connect") {
                 const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
                 
-                // MECCANISMO 1: BYPASS SE LA RETE È GIÀ OK
                 if (currentChainId !== TARGET_HEX) {
-                    document.getElementById('status').innerText = "CONFIGURING NETWORK...";
                     try {
-                        await window.ethereum.request({
-                            method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: TARGET_HEX }],
-                        });
-                        // Se lo switch ha successo, forziamo refresh per pulire il provider
+                        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: TARGET_HEX }] });
                         sessionStorage.setItem('pendingUplink', 'true');
                         location.reload();
                         return;
                     } catch (e) {
-                        // MECCANISMO 2: AGGIUNTA NUOVA RETE + REFRESH
                         if (e.code === 4902) {
-                            await window.ethereum.request({ 
-                                method: 'wallet_addEthereumChain', 
-                                params: [WESTEND_DATA] 
-                            });
+                            await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [WESTEND_DATA] });
                             sessionStorage.setItem('pendingUplink', 'true');
                             location.reload();
                             return;
@@ -117,16 +107,19 @@
                     }
                 }
 
-                // ESECUZIONE CONNESSIONE (Bypassato qui se tutto è già configurato)
                 const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
                 const provider = new ethers.providers.Web3Provider(window.ethereum);
                 signer = provider.getSigner();
+                contract = new ethers.Contract(CONTRACT_ADDR, [
+                    "function claimToken() external",
+                    "function lastClaim(address) view returns (uint256)"
+                ], signer);
 
                 document.getElementById('walletAddress').innerText = accounts[0];
-                document.getElementById('status').innerText = "HUMANITY CHECK REQUIRED";
-                document.getElementById('mainBtn').innerText = "PROOF THAT I AM HUMAN";
                 document.getElementById('actionPanel').style.display = "block";
-                step = "verify";
+                
+                // CONTROLLO COOLDOWN IMMEDIATO
+                await updateCooldown(accounts[0]);
                 return;
             }
 
@@ -145,23 +138,71 @@
             if (step === "claim") {
                 document.getElementById('status').innerText = "TRANSMITTING...";
                 document.getElementById('mainBtn').disabled = true;
-                
-                const contract = new ethers.Contract(CONTRACT_ADDR, [
-                    "function claimToken() external"
-                ], signer);
-
                 const tx = await contract.claimToken();
                 await tx.wait();
-                
-                document.getElementById('status').innerText = "1.00 PUSD SECURED";
-                document.getElementById('mainBtn').innerText = "CLAIM SUCCESSFUL";
+                document.getElementById('status').innerText = "SUCCESSFUL";
+                document.getElementById('mainBtn').innerText = "SECURED";
+                location.reload(); // Ricarica per aggiornare il timer
             }
 
         } catch (err) {
             console.error(err);
-            document.getElementById('status').innerText = "UPLINK ERROR - RETRY";
-            sessionStorage.removeItem('pendingUplink');
+            document.getElementById('status').innerText = "PROTOCOL ERROR";
         }
+    }
+
+    async function updateCooldown(address) {
+        const lastClaimTime = await contract.lastClaim(address);
+        const lastClaimSeconds = lastClaimTime.toNumber();
+        
+        if (lastClaimSeconds === 0) {
+            // Mai fatto claim
+            readyToVerify();
+            return;
+        }
+
+        const nextClaimTime = (lastClaimSeconds + (7 * 24 * 60 * 60)) * 1000;
+        const now = Date.now();
+
+        if (now < nextClaimTime) {
+            // Cooldown attivo
+            step = "locked";
+            document.getElementById('mainBtn').disabled = true;
+            document.getElementById('mainBtn').innerText = "UPLINK LOCKED";
+            document.getElementById('status').innerText = "COOLDOWN IN EFFECT";
+            document.getElementById('timerDisplay').style.display = "block";
+            
+            startTimer(nextClaimTime);
+        } else {
+            readyToVerify();
+        }
+    }
+
+    function readyToVerify() {
+        document.getElementById('status').innerText = "HUMANITY CHECK REQUIRED";
+        document.getElementById('mainBtn').innerText = "PROOF THAT I AM HUMAN";
+        step = "verify";
+    }
+
+    function startTimer(target) {
+        const timerInterval = setInterval(() => {
+            const now = Date.now();
+            const diff = target - now;
+
+            if (diff <= 0) {
+                clearInterval(timerInterval);
+                location.reload();
+                return;
+            }
+
+            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diff % (1000 * 60)) / 1000);
+
+            document.getElementById('timerDisplay').innerText = 
+                `NEXT CLAIM IN: ${d}d ${h}h ${m}m ${s}s`;
+        }, 1000);
     }
 
     async function watchToken() {
