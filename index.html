@@ -3,160 +3,132 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUSD | Alpha 1.0.4</title>
+    <title>PUSD | Alpha 1.0.5</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #000; --fg: #fff; --accent: #e6007a; --border: #222; }
         body { background-color: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; -webkit-font-smoothing: antialiased; }
-        .container { width: 100%; max-width: 450px; padding: 20px; }
-        h1 { font-family: 'Unbounded', sans-serif; font-size: 3.5rem; margin: 0; letter-spacing: -2px; }
-        .tagline { font-size: 0.8rem; color: #888; margin: 10px 0 30px 0; text-transform: uppercase; letter-spacing: 2px; }
-        .btn { font-family: 'Inter', sans-serif; background: var(--fg); color: var(--bg); border: none; padding: 20px; font-size: 0.9rem; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; width: 100%; margin-bottom: 12px; display: block; text-align: center; width: 100%; }
-        .btn:hover { transform: translateY(-2px); opacity: 0.9; }
-        .btn:disabled { opacity: 0.2; cursor: not-allowed; }
+        .container { width: 100%; max-width: 420px; padding: 20px; }
+        h1 { font-family: 'Unbounded', sans-serif; font-size: 3.5rem; margin: 0; letter-spacing: -3px; text-align: left; }
+        .tagline { font-size: 0.8rem; color: #666; margin: 10px 0 40px 0; text-transform: uppercase; letter-spacing: 2px; }
+        
+        .btn { font-family: 'Inter', sans-serif; background: var(--fg); color: var(--bg); border: none; padding: 20px; font-size: 0.9rem; font-weight: 700; border-radius: 4px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; width: 100%; margin-bottom: 12px; }
+        .btn:hover { background: #ccc; }
+        .btn:disabled { opacity: 0.1; cursor: not-allowed; }
         .btn-outline { background: transparent; color: var(--fg); border: 1px solid var(--border); }
         
-        /* Game Styling */
-        #poh-box { background: #111; border: 1px solid var(--border); padding: 20px; border-radius: 12px; margin-bottom: 20px; display: none; }
-        .poh-title { font-size: 0.7rem; color: var(--accent); margin-bottom: 15px; text-transform: uppercase; font-weight: 700; text-align: center; }
-        .poh-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .poh-item { background: #222; border: 1px solid #333; padding: 15px; text-align: center; cursor: pointer; font-size: 1.5rem; border-radius: 8px; transition: 0.2s; }
-        .poh-item:hover { background: #333; border-color: var(--accent); }
-        .poh-target { background: #1a1a1a; padding: 10px; border-radius: 8px; margin-bottom: 15px; text-align: center; font-size: 0.8rem; border: 1px dashed #444; }
+        /* PoH Mini Game */
+        #poh-box { border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; display: none; }
+        .poh-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
+        .poh-item { background: #111; border: 1px solid #222; padding: 15px; text-align: center; cursor: pointer; font-size: 1.2rem; }
+        .poh-item:hover { border-color: var(--fg); }
+        .instruction { font-size: 0.7rem; color: var(--accent); letter-spacing: 1px; font-weight: 700; }
 
-        #status-bar { margin-top: 30px; font-size: 0.7rem; color: #666; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
-        .dot { width: 6px; height: 6px; background: #333; border-radius: 50%; }
-        .dot.active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
-        #wallet-info { font-family: monospace; font-size: 0.65rem; color: #444; margin-top: 15px; text-align: center; }
-        .v { position: fixed; bottom: 30px; left: 30px; font-size: 10px; color: #333; font-weight: 700; }
+        #status-bar { margin-top: 30px; font-size: 0.7rem; color: #444; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
+        .dot { width: 6px; height: 6px; background: #222; border-radius: 50%; }
+        .dot.active { background: #00ff00; }
+        .v { position: fixed; bottom: 30px; left: 30px; font-size: 10px; color: #222; font-weight: 700; }
     </style>
 </head>
 <body>
 
-<div class="v">ALPHA 1.0.4</div>
+<div class="v">ALPHA 1.0.5</div>
 
 <div class="container">
     <h1>PUSD</h1>
-    <div class="tagline">Experimental Token<br>Westend Asset-Hub</div>
+    <div class="tagline">Asset-Hub Westend<br>Digital Dollar Experiment</div>
 
     <div id="setupSection">
-        <button class="btn" id="btnNetwork" onclick="addNetwork()">1. Setup Westend Network</button>
-        <button class="btn btn-outline" id="btnConnect" onclick="connectWallet()">2. Connect Wallet</button>
+        <button class="btn" onclick="addNetwork()">Setup Network</button>
+        <button class="btn btn-outline" onclick="connectWallet()">Connect Wallet</button>
     </div>
 
     <div id="poh-box">
-        <div class="poh-title">Human Verification Required</div>
-        <div class="poh-target" id="poh-instruction">Select the icons in order</div>
+        <div class="instruction" id="poh-text">VERIFYING...</div>
         <div class="poh-grid" id="poh-grid"></div>
     </div>
 
     <div id="actionSection" style="display:none;">
         <button class="btn" id="btnClaim" onclick="handleClaim()">Claim 1.00 PUSD</button>
-        <button class="btn btn-outline" onclick="watchToken()">Add PUSD to Wallet</button>
+        <button class="btn btn-outline" onclick="watchToken()">Add to MetaMask</button>
     </div>
 
-    <div id="status-bar"><div id="status-dot" class="dot"></div><span id="status-text">Ready</span></div>
-    <div id="wallet-info"></div>
+    <div id="status-bar"><div id="status-dot" class="dot"></div><span id="status-text">System Idle</span></div>
 </div>
 
 <script>
+    // Indirizzo normalizzato ethers-compliant
+    const CONTRACT_ADDR = ethers.utils.getAddress("0xdD1747d54Fa8d568f9e25B5fBf08561fe6b39f41");
     const TARGET_HEX = '0x19082935';
-    const CONTRACT_ADDR = "0xdd1747d54fa8d568f9e25b5fbf08561fe6b39f41";
-    const ICONS = ['🔥', '🧊', '⚡', '🌀', '💎', '🌿'];
+    const ICONS = ['🌑', '📡', '🛡️', '🔑', '💎', '🚀'];
     let targetPattern = [], userPattern = [];
 
-    const CONTRACT_ABI = [
-        {"name":"claimToken","type":"function","inputs":[],"outputs":[],"stateMutability":"nonpayable"},
-        {"name":"lastClaim","type":"function","inputs":[{"name":"","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"}
+    const ABI = [
+        "function claimToken() external",
+        "function lastClaim(address) view returns (uint256)"
     ];
 
-    let signer, contract, provider;
-
-    async function monitorNetwork() {
-        if (!window.ethereum) return;
-        const currentChain = await window.ethereum.request({ method: 'eth_chainId' });
-        if (currentChain.toLowerCase() === TARGET_HEX.toLowerCase()) {
-            document.getElementById('btnNetwork').style.display = 'none';
-            document.getElementById('btnConnect').classList.remove('btn-outline');
-            updateStatus("Network Validated", true);
-        }
-    }
-    setInterval(monitorNetwork, 2000);
+    let signer, contract;
 
     async function addNetwork() {
-        try { await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{
+        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{
             chainId: TARGET_HEX,
             chainName: 'Asset-Hub Westend',
             nativeCurrency: { name: 'WND', symbol: 'WND', decimals: 18 },
             rpcUrls: ['https://westend-asset-hub-eth-rpc.polkadot.io'],
             blockExplorerUrls: ['https://assethub-westend.subscan.io']
-        }] }); } catch (e) {}
+        }] });
     }
 
     async function connectWallet() {
         if (!window.ethereum) return;
-        try {
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-            signer = provider.getSigner();
-            contract = new ethers.Contract(CONTRACT_ADDR, CONTRACT_ABI, signer);
-            
-            document.getElementById('setupSection').style.display = 'none';
-            initPoH();
-        } catch (e) { updateStatus("Connection Failed", false); }
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+        signer = provider.getSigner();
+        contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
+        
+        document.getElementById('setupSection').style.display = 'none';
+        startPoH();
     }
 
-    // --- LOGICA GIOCO PROOF OF HUMANITY ---
-    function initPoH() {
+    function startPoH() {
         document.getElementById('poh-box').style.display = 'block';
-        userPattern = [];
         targetPattern = [...ICONS].sort(() => 0.5 - Math.random()).slice(0, 3);
-        
-        document.getElementById('poh-instruction').innerText = `CLICK IN ORDER: ${targetPattern.join(' ')}`;
-        
+        document.getElementById('poh-text').innerText = `SELECT: ${targetPattern.join(' ')}`;
         const grid = document.getElementById('poh-grid');
         grid.innerHTML = '';
         ICONS.forEach(icon => {
-            const div = document.createElement('div');
-            div.className = 'poh-item';
-            div.innerText = icon;
-            div.onclick = () => handlePohClick(icon, div);
-            grid.appendChild(div);
+            const btn = document.createElement('div');
+            btn.className = 'poh-item';
+            btn.innerText = icon;
+            btn.onclick = () => {
+                if(icon === targetPattern[userPattern.length]) {
+                    userPattern.push(icon);
+                    btn.style.opacity = '0.1';
+                    if(userPattern.length === 3) {
+                        document.getElementById('poh-box').style.display = 'none';
+                        document.getElementById('actionSection').style.display = 'block';
+                        updateStatus("Human Verified", true);
+                    }
+                } else {
+                    userPattern = [];
+                    startPoH();
+                }
+            };
+            grid.appendChild(btn);
         });
     }
 
-    function handlePohClick(icon, el) {
-        if (icon === targetPattern[userPattern.length]) {
-            userPattern.push(icon);
-            el.style.opacity = '0.2';
-            el.style.pointerEvents = 'none';
-            if (userPattern.length === 3) {
-                updateStatus("Human Verified", true);
-                document.getElementById('poh-box').style.display = 'none';
-                document.getElementById('actionSection').style.display = 'block';
-            }
-        } else {
-            updateStatus("Verification Failed", false);
-            initPoH(); // Reset se sbaglia
-        }
-    }
-
     async function handleClaim() {
-        const btn = document.getElementById('btnClaim');
         try {
-            btn.disabled = true;
-            updateStatus("Awaiting Signature...", true);
-            
-            // LASCIAMO IL GAS ALLA RETE (Nessun parametro manuale)
+            updateStatus("Awaiting Signature", true);
             const tx = await contract.claimToken();
-            
-            updateStatus("Broadcasting...", true);
+            updateStatus("Broadcasting", true);
             await tx.wait();
-            updateStatus("Claim Success", true);
-            btn.innerText = "Received";
+            updateStatus("Success", true);
+            document.getElementById('btnClaim').innerText = "Claimed";
         } catch (e) {
-            btn.disabled = false;
             updateStatus("RPC Error - Check WND", false);
             console.error(e);
         }
@@ -168,7 +140,10 @@
     }
 
     async function watchToken() {
-        try { await window.ethereum.request({ method: 'wallet_watchAsset', params: { type: 'ERC20', options: { address: CONTRACT_ADDR, symbol: 'PUSD', decimals: 18 } } }); } catch (e) {}
+        await window.ethereum.request({
+            method: 'wallet_watchAsset',
+            params: { type: 'ERC20', options: { address: CONTRACT_ADDR, symbol: 'PUSD', decimals: 18 } }
+        });
     }
 </script>
 </body>
