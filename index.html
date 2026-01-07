@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUSD | Alpha 1.0.10</title>
+    <title>PUSD | Alpha 1.0.11</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -33,7 +33,7 @@
 </head>
 <body>
 
-<div class="v">ALPHA 1.0.10</div>
+<div class="v">ALPHA 1.0.11</div>
 
 <div class="container">
     <h1>PUSD</h1>
@@ -62,8 +62,8 @@
 </div>
 
 <script>
-    // Usiamo l'indirizzo esatto fornito, pulito manualmente per ethers
-    const ADDR = "0xdD1747d54Fa8d568f9e25B5fBf08561fe6b39f41";
+    // FIX FINALE INDIRIZZO: Forzato in minuscolo per disabilitare il controllo checksum di ethers
+    const ADDR_RAW = "0xdd1747d54fa8d568f9e25b5fbf08561fe6b39f41";
     const TARGET_HEX = '0x19082935';
     const ICONS = ['⚡', '🛡️', '📡', '💎', '🌑', '🚀', '🌀', '🔑', '🌿', '🧊', '🔥', '⚙️'];
     
@@ -95,9 +95,8 @@
             provider = new ethers.providers.Web3Provider(window.ethereum, "any");
             signer = provider.getSigner();
             
-            // Creazione contratto con Checksum forzato internamente da ethers per evitare l'errore RPC
-            const safeAddr = ethers.utils.getAddress(ADDR);
-            contract = new ethers.Contract(safeAddr, [
+            // Creiamo l'istanza del contratto usando l'indirizzo minuscolo (evita bad checksum)
+            contract = new ethers.Contract(ADDR_RAW.toLowerCase(), [
                 "function claimToken() external",
                 "function lastClaim(address) view returns (uint256)"
             ], signer);
@@ -105,8 +104,8 @@
             document.getElementById('step1').style.display = 'none';
             await checkCooldown(accounts[0]);
         } catch (e) { 
-            console.error(e); 
-            updateStatus("Bad Address Checksum Fix Applied", false); 
+            console.error(e);
+            updateStatus("Connection Failed", false);
         }
     }
 
@@ -118,11 +117,11 @@
             
             if (Date.now() < next && lastTime !== 0) {
                 document.getElementById('timer-box').style.display = 'block';
-                updateStatus("Cooldown Active", false);
+                updateStatus("In Cooldown", false);
                 startTimer(next);
             } else {
                 document.getElementById('btnShowPoH').style.display = 'block';
-                updateStatus("Ready for Verification", true);
+                updateStatus("Verify to Proceed", true);
             }
         } catch (e) { 
             document.getElementById('btnShowPoH').style.display = 'block'; 
@@ -152,7 +151,7 @@
                     if(userIndex === 4) {
                         document.getElementById('poh-container').style.display = 'none';
                         document.getElementById('stepAction').style.display = 'block';
-                        updateStatus("Humanity Verified", true);
+                        updateStatus("Human Verified", true);
                     }
                 } else { initPoH(); }
             };
@@ -164,24 +163,19 @@
         const btn = document.getElementById('btnClaim');
         try {
             btn.disabled = true;
-            updateStatus("Claiming...", true);
+            updateStatus("Broadcasting...", true);
             
-            // Otteniamo i dati gas per EIP-1559 come richiesto dalla Wiki (pallet_revive)
-            const feeData = await provider.getFeeData();
-            
-            // Transazione ottimizzata per Asset Hub
+            // Lasciamo il gas automatico come richiesto, ma con un gasLimit fisso per Asset Hub
             const tx = await contract.claimToken({
-                maxPriorityFeePerGas: feeData.maxPriorityFeePerGas || ethers.utils.parseUnits("1.5", "gwei"),
-                maxFeePerGas: feeData.maxFeePerGas || ethers.utils.parseUnits("30", "gwei"),
-                gasLimit: 600000 // Aumentato per coprire ref_time e proof_size
+                gasLimit: 800000 // Copre ref_time, proof_size e storage_deposit (pallet_revive)
             });
 
             await tx.wait();
-            updateStatus("Success!", true);
+            updateStatus("Claim Success!", true);
             location.reload();
         } catch (e) {
             btn.disabled = false;
-            updateStatus("RPC Error - Check WND", false);
+            updateStatus("RPC Reverted", false);
             console.error(e);
         }
     }
@@ -201,7 +195,7 @@
 
     async function addPUSD() {
         await window.ethereum.request({ method: 'wallet_watchAsset', params: { 
-            type: 'ERC20', options: { address: ADDR, symbol: 'PUSD', decimals: 18 } 
+            type: 'ERC20', options: { address: ADDR_RAW, symbol: 'PUSD', decimals: 18 } 
         }});
     }
 </script>
