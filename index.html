@@ -11,7 +11,7 @@
         body { background: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
         .container { width: 100%; max-width: 400px; padding: 20px; text-align: center; }
         h1 { font-family: 'Unbounded', sans-serif; font-size: 3rem; margin: 0; letter-spacing: -2px; }
-        .tagline { font-size: 0.75rem; color: #555; margin: 5px 0 25px 0; text-transform: uppercase; letter-spacing: 2px; }
+        .tagline { font-size: 0.7rem; color: #555; margin: 5px 0 25px 0; text-transform: uppercase; letter-spacing: 2px; }
         
         .btn { 
             font-family: 'Inter', sans-serif; background: var(--fg); color: var(--bg); border: none; 
@@ -23,166 +23,165 @@
         .btn-outline { background: transparent; color: var(--fg); border: 1px solid var(--border); }
         .btn:disabled { opacity: 0.2; cursor: not-allowed; }
 
-        #timer-display { 
+        /* Timer Box - Uniform to buttons */
+        #timer-box { 
             height: 60px; border: 1px solid #300; color: #ff3e3e; display: none; 
             align-items: center; justify-content: center; font-family: 'Unbounded'; 
-            font-size: 0.8rem; margin-bottom: 12px; border-radius: 4px;
+            font-size: 0.75rem; margin-bottom: 12px; border-radius: 4px;
         }
 
         #poh-box { border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; display: none; background: #050505; border-radius: 4px; }
         .poh-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; }
         .poh-cell { background: #000; border: 1px solid #222; padding: 12px; cursor: pointer; font-size: 1.2rem; border-radius: 4px; }
-        .target { background: #111; padding: 10px; color: var(--accent); border: 1px dashed #333; margin-bottom: 10px; font-family: 'Unbounded'; }
+        .target-display { background: #111; padding: 10px; color: var(--accent); border: 1px dashed #333; margin-bottom: 10px; font-family: 'Unbounded'; font-size: 1.1rem; }
         
-        #status { margin-top: 20px; font-size: 0.65rem; color: #444; text-transform: uppercase; font-weight: 700; }
-        #wallet-addr { font-size: 10px; color: var(--accent); margin-bottom: 15px; display: block; }
+        #status { margin-top: 25px; font-size: 0.65rem; color: #444; text-transform: uppercase; font-weight: 700; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>PUSD</h1>
-    <div class="tagline">Paseo TestNet Terminal</div>
+    <div class="tagline">Passet Hub Terminal</div>
 
-    <div id="step-1">
-        <button class="btn" onclick="addPaseo()">1. Configure Paseo Network</button>
-        <button class="btn btn-outline" onclick="connect()">2. Connect Wallet</button>
+    <div id="ui-connect">
+        <button class="btn" onclick="addPaseoNet()">1. Add Paseo Network</button>
+        <button class="btn btn-outline" onclick="connectWallet()">2. Connect Wallet</button>
     </div>
 
-    <div id="timer-display"></div>
+    <div id="timer-box">COOLDOWN ACTIVE</div>
 
-    <div id="step-2" style="display:none;">
-        <button class="btn" onclick="startPoh()">Verify Humanity</button>
-        <span id="wallet-addr"></span>
+    <div id="ui-poh-start" style="display:none;">
+        <button class="btn" onclick="openNexus()">Start Human Verification</button>
     </div>
 
     <div id="poh-box">
-        <div class="target" id="poh-display">----</div>
+        <div class="target-display" id="nexus-target">----</div>
         <div class="poh-grid" id="poh-grid"></div>
     </div>
 
-    <div id="step-3" style="display:none;">
-        <button class="btn" id="btn-claim" onclick="claim()">Claim 1 PUSD ($1)</button>
-        <button class="btn btn-outline" onclick="addPUSD()">Add Asset to Wallet</button>
+    <div id="ui-claim" style="display:none;">
+        <button class="btn" id="claim-exec" onclick="runClaim()">Claim 1 PUSD</button>
+        <button class="btn btn-outline" onclick="watchPUSD()">Add Asset to Wallet</button>
     </div>
 
-    <div id="status">Awaiting Connection</div>
+    <div id="status">Network: Disconnected</div>
     
-    <a href="https://faucet.polkadot.io/paseo" target="_blank" style="color: #222; font-size: 10px; text-decoration: none; margin-top: 40px; display: block; font-weight: 700;">REQUEST PAS TOKENS (GAS)</a>
+    <a href="https://faucet.polkadot.io/paseo" target="_blank" style="color: #222; font-size: 10px; text-decoration: none; margin-top: 40px; display: block; font-weight: 700;">GET PAS TESTNET TOKENS</a>
 </div>
 
 <script>
-    const ADDR = "0xdd1747d54fa8d568f9e25b5fbf08561fe6b39f41";
-    const ABI = [
-        "function claimToken() external",
-        "function lastClaim(address) view returns (uint256)"
-    ];
+    const CONTRACT_ADDR = "0xdd1747d54fa8d568f9e25b5fbf08561fe6b39f41";
+    const ABI = ["function claimToken() external", "function lastClaim(address) view returns (uint256)"];
     const ICONS = ['⚡', '🛡️', '📡', '💎', '🌑', '🚀', '🌀', '🔑', '🌿', '🧊', '🔥', '⚙️'];
     
-    let provider, signer, contract, sequence = [], step = 0;
+    let signer, contract, seq = [], idx = 0;
 
-    async function addPaseo() {
+    async function addPaseoNet() {
         try {
             await window.ethereum.request({
                 method: 'wallet_addEthereumChain',
                 params: [{
-                    chainId: '0x190bc416', // 420420422 in hex
+                    chainId: '0x190bc416', // 420420422
                     chainName: 'Polkadot Hub TestNet',
                     nativeCurrency: { name: 'PAS', symbol: 'PAS', decimals: 18 },
                     rpcUrls: ['https://testnet-passet-hub-eth-rpc.polkadot.io'],
-                    blockExplorerUrls: ['https://assethub-paseo.subscan.io']
+                    blockExplorerUrls: ['https://blockscout-passet-hub.parity-testnet.parity.io']
                 }]
             });
-            document.getElementById('status').innerText = "Paseo Network Ready";
+            document.getElementById('status').innerText = "Network: Paseo Ready";
         } catch (e) { console.error(e); }
     }
 
-    async function connect() {
-        if (!window.ethereum) return alert("Please install MetaMask");
-        provider = new ethers.providers.Web3Provider(window.ethereum);
+    async function connectWallet() {
+        if (!window.ethereum) return alert("Install MetaMask");
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send("eth_requestAccounts", []);
         signer = provider.getSigner();
-        contract = new ethers.Contract(ADDR, ABI, signer);
+        contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
         
-        const user = await signer.getAddress();
-        document.getElementById('wallet-addr').innerText = user;
-        document.getElementById('step-1').style.display = 'none';
-        check(user);
+        const address = await signer.getAddress();
+        document.getElementById('ui-connect').style.display = 'none';
+        checkUserStatus(address);
     }
 
-    async function check(user) {
+    async function checkUserStatus(address) {
         try {
-            const last = await contract.lastClaim(user);
-            const next = (parseInt(last) + 604800) * 1000;
-            if (Date.now() < next && parseInt(last) !== 0) {
-                const box = document.getElementById('timer-display');
+            const lastTs = await contract.lastClaim(address);
+            const nextTs = (parseInt(lastTs) + 604800) * 1000;
+            
+            if (Date.now() < nextTs && parseInt(lastTs) !== 0) {
+                const box = document.getElementById('timer-box');
                 box.style.display = 'flex';
-                updateTimer(next);
+                const runTimer = () => {
+                    const diff = nextTs - Date.now();
+                    if (diff <= 0) { location.reload(); return; }
+                    const d = Math.floor(diff / 86400000);
+                    const h = Math.floor((diff % 86400000) / 3600000);
+                    box.innerText = `NEXT CLAIM IN ${d}D ${h}H`;
+                };
+                runTimer();
+                setInterval(runTimer, 60000);
+                document.getElementById('status').innerText = "Status: Cooldown";
             } else {
-                document.getElementById('step-2').style.display = 'block';
-                document.getElementById('status').innerText = "Verified Identity Required";
+                document.getElementById('ui-poh-start').style.display = 'block';
+                document.getElementById('status').innerText = "Status: Verified ID Required";
             }
-        } catch (e) { document.getElementById('step-2').style.display = 'block'; }
+        } catch (e) {
+            document.getElementById('ui-poh-start').style.display = 'block';
+        }
     }
 
-    function updateTimer(target) {
-        const box = document.getElementById('timer-display');
-        const count = () => {
-            const diff = target - Date.now();
-            if (diff <= 0) { location.reload(); return; }
-            const d = Math.floor(diff / 86400000);
-            const h = Math.floor((diff % 86400000) / 3600000);
-            const m = Math.floor((diff % 3600000) / 60000);
-            box.innerText = `NEXT CLAIM: ${d}D ${h}H ${m}M`;
-        };
-        count();
-        setInterval(count, 60000);
-    }
-
-    function startPoh() {
-        document.getElementById('step-2').style.display = 'none';
+    function openNexus() {
+        document.getElementById('ui-poh-start').style.display = 'none';
         document.getElementById('poh-box').style.display = 'block';
-        sequence = [...ICONS].sort(() => 0.5 - Math.random()).slice(0, 4);
-        document.getElementById('poh-display').innerText = sequence.join('');
+        seq = [...ICONS].sort(() => 0.5 - Math.random()).slice(0, 4);
+        idx = 0;
+        document.getElementById('nexus-target').innerText = seq.join('');
         const grid = document.getElementById('poh-grid');
         grid.innerHTML = '';
         [...ICONS].sort(() => 0.5 - Math.random()).forEach(icon => {
-            const c = document.createElement('div');
-            c.className = 'poh-cell';
-            c.innerText = icon;
-            c.onclick = () => {
-                if(icon === sequence[step]) {
-                    step++; c.style.opacity = '0.1';
-                    if(step === 4) {
+            const cell = document.createElement('div');
+            cell.className = 'poh-cell';
+            cell.innerText = icon;
+            cell.onclick = () => {
+                if(icon === seq[idx]) {
+                    idx++; cell.style.opacity = '0.1';
+                    if(idx === 4) {
                         document.getElementById('poh-box').style.display = 'none';
-                        document.getElementById('step-3').style.display = 'block';
-                        document.getElementById('status').innerText = "Identity Confirmed";
+                        document.getElementById('ui-claim').style.display = 'block';
+                        document.getElementById('status').innerText = "Status: Identity Confirmed";
                     }
-                } else { step = 0; startPoh(); }
+                } else { openNexus(); }
             };
-            grid.appendChild(c);
+            grid.appendChild(cell);
         });
     }
 
-    async function claim() {
+    async function runClaim() {
+        const btn = document.getElementById('claim-exec');
         try {
-            const btn = document.getElementById('btn-claim');
             btn.disabled = true;
-            document.getElementById('status').innerText = "Broadcasting Transaction...";
+            document.getElementById('status').innerText = "Uplinking to Paseo...";
+            
+            // Standard call - Polkadot Hub Ethereum RPC handles translation to PolkaVM
             const tx = await contract.claimToken();
-            document.getElementById('status').innerText = "Waiting for Paseo Block... ⏳";
+            
+            document.getElementById('status').innerText = "Finalizing Block... ⏳";
             await tx.wait();
+            
             document.getElementById('status').innerText = "Claim Success! 🎉";
             setTimeout(() => location.reload(), 3000);
         } catch (e) {
-            document.getElementById('status').innerText = "Error: Low PAS for Gas";
+            console.error(e);
+            document.getElementById('status').innerText = "Failed: Low PAS or Cooldown";
             btn.disabled = false;
         }
     }
 
-    async function addPUSD() {
+    async function watchPUSD() {
         await window.ethereum.request({ method: 'wallet_watchAsset', params: { 
-            type: 'ERC20', options: { address: ADDR, symbol: 'PUSD', decimals: 18 } 
+            type: 'ERC20', options: { address: CONTRACT_ADDR, symbol: 'PUSD', decimals: 18 } 
         }});
     }
 </script>
