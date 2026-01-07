@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUSD | Alpha 1.0.2</title>
+    <title>PUSD | Alpha 1.0.3</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -16,20 +16,19 @@
         .btn:hover { transform: translateY(-2px); opacity: 0.9; }
         .btn:disabled { opacity: 0.2; cursor: not-allowed; }
         .btn-outline { background: transparent; color: var(--fg); border: 1px solid var(--border); }
-        .btn-faucet { border-color: #444; color: #666; font-size: 0.7rem; margin-top: 20px; }
         #status-bar { margin-top: 30px; font-size: 0.7rem; color: #666; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
         .dot { width: 6px; height: 6px; background: #333; border-radius: 50%; }
         .dot.active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
         #cooldown-box { margin-top: 20px; padding: 15px; border: 1px solid var(--border); border-radius: 8px; display: none; background: rgba(230, 0, 122, 0.05); text-align: center; }
         #timer-value { color: var(--accent); font-family: 'Unbounded', sans-serif; font-size: 1.2rem; font-weight: 700; }
         #wallet-info { font-family: monospace; font-size: 0.65rem; color: #444; margin-top: 15px; text-align: center; word-break: break-all; }
-        #debug-log { font-size: 0.6rem; color: #ff3e3e; margin-top: 10px; font-family: monospace; text-align: center; display: none; background: #110000; padding: 5px; }
+        #debug-log { font-size: 0.65rem; color: #ff3e3e; margin-top: 10px; font-family: monospace; text-align: center; display: none; background: #1a0000; padding: 10px; border-radius: 4px; border: 1px solid #400; }
         .v { position: fixed; bottom: 30px; left: 30px; font-size: 10px; color: #333; font-weight: 700; }
     </style>
 </head>
 <body>
 
-<div class="v">ALPHA 1.0.2</div>
+<div class="v">ALPHA 1.0.3</div>
 
 <div class="container">
     <h1>PUSD</h1>
@@ -50,7 +49,7 @@
         <div id="timer-value">00D 00H 00M 00S</div>
     </div>
 
-    <a href="https://faucet.polkadot.io/westend" target="_blank" class="btn btn-outline btn-faucet">Need WND for Gas? Get some here</a>
+    <a href="https://faucet.polkadot.io/westend" target="_blank" class="btn btn-outline" style="font-size: 0.7rem; margin-top: 20px; border-color: #444; color: #666;">Need WND for Gas? Get some here</a>
 
     <div id="status-bar"><div id="status-dot" class="dot"></div><span id="status-text">Ready</span></div>
     <div id="debug-log"></div>
@@ -59,10 +58,9 @@
 
 <script>
     const TARGET_HEX = '0x19082935';
-    // FIXED: Indirizzo forzato in minuscolo per bypassare l'errore INVALID_ARGUMENT (checksum)
-    const CONTRACT_ADDR = "0xdd1747d54fa8d568f9e25b5fbf08561fe6b39f41".toLowerCase();
+    const CONTRACT_ADDR = "0xdd1747d54fa8d568f9e25b5fbf08561fe6b39f41";
     
-    const CONTRACT_ABI = [{"type":"constructor","inputs":[],"stateMutability":"nonpayable"},{"name":"Approval","type":"event","inputs":[{"name":"owner","type":"address","indexed":true,"internalType":"address"},{"name":"spender","type":"address","indexed":true,"internalType":"address"},{"name":"val","type":"uint256","indexed":false,"internalType":"uint256"}],"anonymous":false},{"name":"Transfer","type":"event","inputs":[{"name":"from","type":"address","indexed":true,"internalType":"address"},{"name":"to","type":"address","indexed":true,"internalType":"address"},{"name":"val","type":"uint256","indexed":false,"internalType":"uint256"}],"anonymous":false},{"name":"CLAIM_AMT","type":"function","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"WEEK","type":"function","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"allowance","type":"function","inputs":[{"name":"","type":"address","internalType":"address"},{"name":"","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"approve","type":"function","inputs":[{"name":"sp","type":"address","internalType":"address"},{"name":"amt","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"name":"balanceOf","type":"function","inputs":[{"name":"","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"claimToken","type":"function","inputs":[],"outputs":[],"stateMutability":"nonpayable"},{"name":"decimals","type":"function","inputs":[],"outputs":[{"name":"","type":"uint8","internalType":"uint8"}],"stateMutability":"view"},{"name":"lastClaim","type":"function","inputs":[{"name":"","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"name","type":"function","inputs":[],"outputs":[{"name":"","type":"string","internalType":"string"}],"stateMutability":"view"},{"name":"owner","type":"function","inputs":[],"outputs":[{"name":"","type":"address","internalType":"address"}],"stateMutability":"view"},{"name":"symbol","type":"function","inputs":[],"outputs":[{"name":"","type":"string","internalType":"string"}],"stateMutability":"view"},{"name":"totalSupply","type":"function","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"transfer","type":"function","inputs":[{"name":"to","type":"address","internalType":"address"},{"name":"amount","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"name":"transferFrom","type":"function","inputs":[{"name":"frm","type":"address","internalType":"address"},{"name":"to","type":"address","internalType":"address"},{"name":"amt","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"}];
+    const CONTRACT_ABI = [{"type":"constructor","inputs":[],"stateMutability":"nonpayable"},{"name":"claimToken","type":"function","inputs":[],"outputs":[],"stateMutability":"nonpayable"},{"name":"lastClaim","type":"function","inputs":[{"name":"","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"balanceOf","type":"function","inputs":[{"name":"","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"}];
 
     const NETWORK_PARAMS = {
         chainId: TARGET_HEX,
@@ -86,9 +84,7 @@
     setInterval(monitorNetwork, 2000);
 
     async function addNetwork() {
-        try {
-            await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [NETWORK_PARAMS] });
-        } catch (e) { console.error(e); }
+        try { await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [NETWORK_PARAMS] }); } catch (e) {}
     }
 
     async function connectWallet() {
@@ -98,16 +94,11 @@
             provider = new ethers.providers.Web3Provider(window.ethereum, "any");
             signer = provider.getSigner();
             contract = new ethers.Contract(CONTRACT_ADDR, CONTRACT_ABI, signer);
-
             document.getElementById('setupSection').style.display = 'none';
             document.getElementById('actionSection').style.display = 'block';
             document.getElementById('wallet-info').innerText = accounts[0];
-            
             await checkCooldown(accounts[0]);
-        } catch (e) { 
-            console.error(e);
-            updateStatus("Connection Failed", false); 
-        }
+        } catch (e) { updateStatus("Connection Failed", false); }
     }
 
     async function handleClaim() {
@@ -127,22 +118,29 @@
         } else {
             try {
                 btn.disabled = true;
-                updateStatus("Awaiting Signature...", true);
+                updateStatus("Linking RPC...", true);
 
-                // Tentativo di invio senza parametri manuali
-                const tx = await contract.claimToken();
+                // Controllo saldo WND prima di inviare
+                const balance = await provider.getBalance(await signer.getAddress());
+                if (balance.lt(ethers.utils.parseEther("0.01"))) {
+                    throw new Error("Insufficient WND for gas/existential deposit");
+                }
+
+                // BYPASS STIMA GAS: Forziamo un gas limit alto per evitare l'errore JSON-RPC "Internal Error"
+                const tx = await contract.claimToken({
+                    gasLimit: 500000 
+                });
 
                 updateStatus("Broadcasting...", true);
                 await tx.wait();
-                
                 updateStatus("Claim Success", true);
                 btn.innerText = "Received";
                 setTimeout(() => location.reload(), 3000);
             } catch (e) {
                 btn.disabled = false;
-                updateStatus("Error Detected", false);
+                updateStatus("RPC Error", false);
                 debug.style.display = "block";
-                debug.innerText = e.reason || e.message;
+                debug.innerText = e.message.includes("Insufficient") ? "ERROR: NEED MORE WND FOR GAS" : "INTERNAL ERROR: TRY AGAIN LATER OR CHECK WND BALANCE";
                 console.error("Full Error:", e);
             }
         }
@@ -152,13 +150,13 @@
         try {
             const last = await contract.lastClaim(addr);
             const next = (last.toNumber() + (7 * 24 * 60 * 60)) * 1000;
-            if (Date.now() < next) {
+            if (Date.now() < next && last.toNumber() !== 0) {
                 document.getElementById('btnClaim').disabled = true;
                 document.getElementById('btnClaim').innerText = "Locked";
                 document.getElementById('cooldown-box').style.display = "block";
                 startTimer(next);
             }
-        } catch(e) { console.error("Cooldown Check Error:", e); }
+        } catch(e) {}
     }
 
     function startTimer(target) {
@@ -179,12 +177,7 @@
     }
 
     async function watchToken() {
-        try {
-            await window.ethereum.request({
-                method: 'wallet_watchAsset',
-                params: { type: 'ERC20', options: { address: CONTRACT_ADDR, symbol: 'PUSD', decimals: 18 } }
-            });
-        } catch (e) {}
+        try { await window.ethereum.request({ method: 'wallet_watchAsset', params: { type: 'ERC20', options: { address: CONTRACT_ADDR, symbol: 'PUSD', decimals: 18 } } }); } catch (e) {}
     }
 </script>
 </body>
