@@ -3,145 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUSD | Alpha 0.3</title>
+    <title>PUSD | Alpha 0.4</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg: #000000;
-            --fg: #ffffff;
-            --accent: #e6007a; /* Manteniamo un tocco di brand per i dettagli */
-            --border: #222;
-        }
-
-        body {
-            background-color: var(--bg);
-            color: var(--fg);
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        .container {
-            width: 100%;
-            max-width: 450px;
-            padding: 20px;
-            text-align: left;
-        }
-
-        h1 {
-            font-family: 'Unbounded', sans-serif;
-            font-size: 3.5rem;
-            margin: 0;
-            line-height: 1;
-            letter-spacing: -2px;
-        }
-
-        .tagline {
-            font-size: 1rem;
-            color: #888;
-            margin: 15px 0 40px 0;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        .card {
-            border-top: 1px solid var(--border);
-            padding-top: 30px;
-        }
-
-        .btn-group {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        button {
-            font-family: 'Inter', sans-serif;
-            background: var(--fg);
-            color: var(--bg);
-            border: none;
-            padding: 18px 25px;
-            font-size: 0.9rem;
-            font-weight: 700;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            text-transform: uppercase;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            background: #eee;
-        }
-
-        button.secondary {
-            background: transparent;
-            color: var(--fg);
-            border: 1px solid var(--border);
-        }
-
-        button.secondary:hover {
-            border-color: var(--fg);
-        }
-
-        button:disabled {
-            opacity: 0.3;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        #status-bar {
-            margin-top: 30px;
-            font-size: 0.75rem;
-            color: #666;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .dot {
-            width: 6px;
-            height: 6px;
-            background: #333;
-            border-radius: 50%;
-        }
-
-        .dot.active { background: #00ff00; box-shadow: 0 0 10px #00ff00; }
-
-        #wallet-info {
-            font-family: monospace;
-            font-size: 0.7rem;
-            color: #444;
-            margin-top: 10px;
-        }
-
-        #timer {
-            color: var(--accent);
-            font-weight: 700;
-            margin-top: 15px;
-            font-size: 0.8rem;
-        }
-
+        :root { --bg: #000; --fg: #fff; --accent: #e6007a; --border: #222; }
+        body { background-color: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; -webkit-font-smoothing: antialiased; }
+        .container { width: 100%; max-width: 450px; padding: 20px; }
+        h1 { font-family: 'Unbounded', sans-serif; font-size: 3.5rem; margin: 0; letter-spacing: -2px; }
+        .tagline { font-size: 0.8rem; color: #888; margin: 10px 0 40px 0; text-transform: uppercase; letter-spacing: 2px; }
+        .btn-group { display: flex; flex-direction: column; gap: 12px; }
+        button { font-family: 'Inter', sans-serif; background: var(--fg); color: var(--bg); border: none; padding: 18px; font-size: 0.9rem; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
+        button:hover { transform: translateY(-2px); opacity: 0.9; }
+        button.secondary { background: transparent; color: var(--fg); border: 1px solid var(--border); }
+        button:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+        #status-bar { margin-top: 30px; font-size: 0.7rem; color: #666; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .dot { width: 6px; height: 6px; background: #333; border-radius: 50%; }
+        .dot.active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
+        #wallet-info { font-family: monospace; font-size: 0.65rem; color: #444; margin-top: 10px; word-break: break-all; }
+        #timer { color: var(--accent); font-weight: 700; margin-top: 15px; font-size: 0.8rem; }
         .v { position: fixed; bottom: 30px; left: 30px; font-size: 10px; color: #333; font-weight: 700; }
     </style>
 </head>
 <body>
 
-<div class="v">ALPHA 0.3</div>
+<div class="v">ALPHA 0.4</div>
 
 <div class="container">
     <h1>PUSD</h1>
-    <div class="tagline">The Digital Dollar<br>on Westend</div>
+    <div class="tagline">Experimental Token<br>Westend Asset-Hub</div>
 
     <div class="card">
         <div class="btn-group" id="setup-group">
-            <button onclick="connectOnly()">Connect Wallet</button>
-            <button class="secondary" onclick="setupNetwork()">Setup Westend Network</button>
+            <button id="connectBtn" onclick="connectOnly()">Connect Wallet</button>
+            <button id="setupBtn" class="secondary" onclick="setupNetwork()">Setup Westend Network</button>
         </div>
 
         <div class="btn-group" id="action-group" style="display:none;">
@@ -150,16 +45,13 @@
         </div>
 
         <div id="timer"></div>
-
-        <div id="status-bar">
-            <div id="status-dot" class="dot"></div>
-            <span id="status-text">Ready to initiate</span>
-        </div>
+        <div id="status-bar"><div id="status-dot" class="dot"></div><span id="status-text">System Idle</span></div>
         <div id="wallet-info"></div>
     </div>
 </div>
 
 <script>
+    const TARGET_DEC = 420420421;
     const TARGET_HEX = '0x19082935';
     const CONTRACT_ADDR = "0xdd1747d54fa8d568f9e25b5fbf08561fe6b39f41";
     const NETWORK_DATA = {
@@ -172,35 +64,42 @@
 
     let signer, contract, step = "verify";
 
-    // --- LOGICA 1: SETUP RETE (SOLO SE RICHIESTO) ---
+    // 1. SETUP RETE + REFRESH FORZATO
     async function setupNetwork() {
         if (!window.ethereum) return alert("MetaMask missing");
         try {
-            updateStatus("Configuring network...", false);
+            updateStatus("Adding network...", false);
             await window.ethereum.request({
                 method: 'wallet_addEthereumChain',
                 params: [NETWORK_DATA]
             });
-            updateStatus("Network added. Now connect.", true);
+            updateStatus("Network Ready. Refreshing...", true);
+            // Il refresh pulisce il provider e risolve il bug del "Wrong Network"
+            setTimeout(() => location.reload(), 1000);
         } catch (e) {
-            updateStatus("Setup failed.", false);
+            updateStatus("Setup aborted.", false);
         }
     }
 
-    // --- LOGICA 2: CONNESSIONE DIRETTA (BYPASS) ---
+    // 2. CONNESSIONE CON CONTROLLO NORMALIZZATO
     async function connectOnly() {
         if (!window.ethereum) return alert("MetaMask missing");
         try {
-            updateStatus("Linking wallet...", false);
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const { chainId } = await provider.getNetwork();
+            updateStatus("Connecting...", false);
+            
+            // Verifichiamo la rete attuale prima di procedere
+            const currentChainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+            const currentChainIdDec = parseInt(currentChainIdHex, 16);
 
-            if (chainId.toString() !== "420420421") {
-                updateStatus("Wrong network. Use Setup button.", false);
+            if (currentChainIdDec !== TARGET_DEC) {
+                updateStatus("Wrong Network. Please use Setup.", false);
+                document.getElementById('setupBtn').style.borderColor = "#e6007a";
                 return;
             }
 
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+            
             signer = provider.getSigner();
             contract = new ethers.Contract(CONTRACT_ADDR, [
                 "function claimToken() external",
@@ -211,52 +110,54 @@
             document.getElementById('setup-group').style.display = "none";
             document.getElementById('action-group').style.display = "flex";
             
-            checkCooldown(accounts[0]);
+            await checkCooldown(accounts[0]);
         } catch (e) {
+            console.error(e);
             updateStatus("Connection failed.", false);
         }
     }
 
-    // --- LOGICA 3: GESTIONE AZIONI (VERIFY & CLAIM) ---
+    // 3. AZIONI
     async function handleAction() {
         const btn = document.getElementById('mainActionBtn');
         if (step === "verify") {
-            updateStatus("Scanning biological patterns...", true);
+            updateStatus("Analyzing biological data...", true);
             btn.disabled = true;
             setTimeout(() => {
                 btn.disabled = false;
                 btn.innerText = "Claim 1.00 PUSD";
-                updateStatus("Human confirmed.", true);
+                updateStatus("Humanity confirmed.", true);
                 step = "claim";
             }, 1000);
         } else if (step === "claim") {
             try {
-                updateStatus("Broadcasting claim...", true);
+                updateStatus("Broadcasting to Westend...", true);
                 btn.disabled = true;
-                const tx = await contract.claimToken();
+                const tx = await contract.claimToken({ gasLimit: 200000 });
                 await tx.wait();
                 updateStatus("Success. 1 PUSD received.", true);
                 btn.innerText = "Received";
-                location.reload();
+                setTimeout(() => location.reload(), 3000);
             } catch (e) {
-                updateStatus("Transaction failed.", false);
+                updateStatus("Claim failed (Cooldown?)", false);
                 btn.disabled = false;
             }
         }
     }
 
     async function checkCooldown(addr) {
-        const last = await contract.lastClaim(addr);
-        const next = (last.toNumber() + (7 * 24 * 60 * 60)) * 1000;
-        
-        if (Date.now() < next) {
-            document.getElementById('mainActionBtn').disabled = true;
-            document.getElementById('mainActionBtn').innerText = "Cooldown Active";
-            updateStatus("Uplink restricted.", false);
-            startTimer(next);
-        } else {
-            updateStatus("System linked.", true);
-        }
+        try {
+            const last = await contract.lastClaim(addr);
+            const next = (last.toNumber() + (7 * 24 * 60 * 60)) * 1000;
+            if (Date.now() < next) {
+                document.getElementById('mainActionBtn').disabled = true;
+                document.getElementById('mainActionBtn').innerText = "Cooldown Active";
+                updateStatus("Sync locked.", false);
+                startTimer(next);
+            } else {
+                updateStatus("Uplink active.", true);
+            }
+        } catch (e) { updateStatus("Ready.", true); }
     }
 
     function startTimer(target) {
@@ -268,12 +169,12 @@
             const h = Math.floor((diff % 86400000) / 3600000);
             const m = Math.floor((diff % 3600000) / 60000);
             const s = Math.floor((diff % 60000) / 1000);
-            div.innerText = `NEXT ACCESS: ${d}D ${h}H ${m}M ${s}S`;
+            div.innerText = `NEXT ACCESS: ${d}D ${h}H ${M}M ${s}S`.toUpperCase();
         }, 1000);
     }
 
     function updateStatus(text, active) {
-        document.getElementById('status-text').innerText = text.toUpperCase();
+        document.getElementById('status-text').innerText = text;
         document.getElementById('status-dot').className = active ? 'dot active' : 'dot';
     }
 
