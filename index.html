@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUSD | Alpha 0.5</title>
+    <title>PUSD | Alpha 0.6</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -12,49 +12,46 @@
         .container { width: 100%; max-width: 450px; padding: 20px; }
         h1 { font-family: 'Unbounded', sans-serif; font-size: 3.5rem; margin: 0; letter-spacing: -2px; }
         .tagline { font-size: 0.8rem; color: #888; margin: 10px 0 40px 0; text-transform: uppercase; letter-spacing: 2px; }
-        .btn-group { display: flex; flex-direction: column; gap: 12px; }
-        button { font-family: 'Inter', sans-serif; background: var(--fg); color: var(--bg); border: none; padding: 18px; font-size: 0.9rem; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; }
-        button:hover { transform: translateY(-2px); opacity: 0.9; }
-        button.secondary { background: transparent; color: var(--fg); border: 1px solid var(--border); }
-        button:disabled { opacity: 0.2; cursor: not-allowed; transform: none; }
-        #status-bar { margin-top: 30px; font-size: 0.7rem; color: #666; display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        /* Unico Pulsante Intelligente */
+        #smartBtn { font-family: 'Inter', sans-serif; background: var(--fg); color: var(--bg); border: none; padding: 20px; font-size: 1rem; font-weight: 700; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; width: 100%; }
+        #smartBtn:hover { transform: translateY(-2px); opacity: 0.9; }
+        #smartBtn:disabled { opacity: 0.2; cursor: not-allowed; }
+        
+        .secondary { background: transparent; color: var(--fg); border: 1px solid var(--border); padding: 12px; font-size: 0.7rem; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px; text-transform: uppercase; font-weight: 700; }
+
+        #status-bar { margin-top: 30px; font-size: 0.7rem; color: #666; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
         .dot { width: 6px; height: 6px; background: #333; border-radius: 50%; }
         .dot.active { background: #00ff00; box-shadow: 0 0 8px #00ff00; }
-        #wallet-info { font-family: monospace; font-size: 0.65rem; color: #444; margin-top: 10px; word-break: break-all; }
         
-        /* Box Timer Evidente */
         #cooldown-box { margin-top: 20px; padding: 15px; border: 1px solid var(--border); border-radius: 8px; display: none; background: rgba(255, 62, 62, 0.05); }
-        #timer-label { font-size: 0.6rem; color: var(--grey); margin-bottom: 5px; text-transform: uppercase; }
         #timer-value { color: var(--error); font-family: 'Unbounded', sans-serif; font-size: 1.2rem; font-weight: 700; }
         
+        #wallet-info { font-family: monospace; font-size: 0.65rem; color: #444; margin-top: 15px; word-break: break-all; text-align: center; }
         .v { position: fixed; bottom: 30px; left: 30px; font-size: 10px; color: #333; font-weight: 700; }
     </style>
 </head>
 <body>
 
-<div class="v">ALPHA 0.5</div>
+<div class="v">ALPHA 0.6</div>
 
 <div class="container">
     <h1>PUSD</h1>
-    <div class="tagline">Experimental Token<br>Westend Asset-Hub</div>
+    <div class="tagline">Experimental Faucet<br>Westend Asset-Hub</div>
 
     <div class="card">
-        <div class="btn-group" id="setup-group">
-            <button id="connectBtn" onclick="connectOnly()">Connect Wallet</button>
-            <button id="setupBtn" class="secondary" onclick="setupNetwork()">Setup Westend Network</button>
-        </div>
-
-        <div class="btn-group" id="action-group" style="display:none;">
-            <button id="mainActionBtn" onclick="handleAction()">Verify Humanity</button>
-            <button class="secondary" onclick="watchToken()">Add PUSD to Wallet</button>
-        </div>
-
+        <button id="smartBtn" onclick="handleSmartLogic()">Initialize Uplink</button>
+        
         <div id="cooldown-box">
-            <div id="timer-label">Uplink Locked - Cooldown in effect</div>
+            <div style="font-size: 0.6rem; color: #666; margin-bottom: 5px;">TIME UNTIL NEXT ACCESS</div>
             <div id="timer-value">00D 00H 00M 00S</div>
         </div>
 
-        <div id="status-bar"><div id="status-dot" class="dot"></div><span id="status-text">System Idle</span></div>
+        <div id="extraActions" style="display:none;">
+            <button class="secondary" onclick="watchToken()">Add PUSD to MetaMask</button>
+        </div>
+
+        <div id="status-bar"><div id="status-dot" class="dot"></div><span id="status-text">System Ready</span></div>
         <div id="wallet-info"></div>
     </div>
 </div>
@@ -71,129 +68,114 @@
         blockExplorerUrls: ['https://assethub-westend.subscan.io']
     };
 
-    let signer, contract, step = "verify";
+    let signer, contract, currentState = "init"; 
 
-    // --- 1. SETUP RETE (AGGIUNTA E SWITCH) ---
-    async function setupNetwork() {
-        if (!window.ethereum) return alert("MetaMask missing");
-        try {
-            updateStatus("Configuring Westend...", false);
-            await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [NETWORK_DATA]
-            });
-            updateStatus("Network Ready. Click Connect.", true);
-        } catch (e) {
-            updateStatus("Setup failed.", false);
-        }
+    // --- AUTO-DETECTION: Monitora i cambi di account o rete senza bisogno di clic ---
+    if (window.ethereum) {
+        window.ethereum.on('chainChanged', () => location.reload());
+        window.ethereum.on('accountsChanged', () => location.reload());
     }
 
-    // --- 2. CONNESSIONE (FORZA LO SWITCH SE NECESSARIO) ---
-    async function connectOnly() {
+    async function handleSmartLogic() {
         if (!window.ethereum) return alert("MetaMask missing");
-        try {
-            updateStatus("Syncing...", false);
-            
-            // Proviamo a connettere l'account
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-            const { chainId } = await provider.getNetwork();
+        const btn = document.getElementById('smartBtn');
 
-            // Se la rete è sbagliata, tentiamo lo switch immediato invece di bloccare
-            if (chainId !== TARGET_DEC) {
+        try {
+            // STEP 1: GESTIONE RETE
+            const currentChainIdHex = await window.ethereum.request({ method: 'eth_chainId' });
+            if (parseInt(currentChainIdHex, 16) !== TARGET_DEC) {
+                updateStatus("Switching to Westend...", false);
                 try {
                     await window.ethereum.request({
                         method: 'wallet_switchEthereumChain',
                         params: [{ chainId: TARGET_HEX }],
                     });
-                    // Se lo switch avviene, ricarichiamo per evitare bug di cache del provider
-                    location.reload();
-                    return;
                 } catch (err) {
-                    updateStatus("Switch to Westend failed.", false);
-                    return;
+                    if (err.code === 4902) {
+                        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [NETWORK_DATA] });
+                    }
                 }
+                return; // Esce e aspetta il reload automatico gestito da .on('chainChanged')
             }
 
-            // Se siamo qui, la rete è corretta
-            signer = provider.getSigner();
-            contract = new ethers.Contract(CONTRACT_ADDR, [
-                "function claimToken() external",
-                "function lastClaim(address) view returns (uint256)"
-            ], signer);
+            // STEP 2: CONNESSIONE WALLET
+            if (currentState === "init") {
+                updateStatus("Linking Account...", false);
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                signer = provider.getSigner();
+                contract = new ethers.Contract(CONTRACT_ADDR, [
+                    "function claimToken() external",
+                    "function lastClaim(address) view returns (uint256)"
+                ], signer);
 
-            document.getElementById('wallet-info').innerText = accounts[0];
-            document.getElementById('setup-group').style.display = "none";
-            document.getElementById('action-group').style.display = "flex";
-            
-            await checkCooldown(accounts[0]);
-        } catch (e) {
-            console.error(e);
-            updateStatus("Uplink failed.", false);
-        }
-    }
-
-    // --- 3. LOGICA AZIONI ---
-    async function handleAction() {
-        const btn = document.getElementById('mainActionBtn');
-        if (step === "verify") {
-            updateStatus("Verifying biological pattern...", true);
-            btn.disabled = true;
-            setTimeout(() => {
-                btn.disabled = false;
-                btn.innerText = "Claim 1.00 PUSD";
-                updateStatus("Humanity confirmed.", true);
-                step = "claim";
-            }, 1000);
-        } else if (step === "claim") {
-            try {
-                updateStatus("Transmitting...", true);
-                btn.disabled = true;
-                const tx = await contract.claimToken({ gasLimit: 250000 });
-                await tx.wait();
-                updateStatus("Success. 1 PUSD received.", true);
-                btn.innerText = "Received";
-                setTimeout(() => location.reload(), 3000);
-            } catch (e) {
-                updateStatus("Protocol error.", false);
-                btn.disabled = false;
-            }
-        }
-    }
-
-    // --- 4. GESTIONE COOLDOWN E TIMER ---
-    async function checkCooldown(addr) {
-        try {
-            const last = await contract.lastClaim(addr);
-            const lastSeconds = last.toNumber();
-            if (lastSeconds === 0) {
-                updateStatus("Ready for claim.", true);
+                document.getElementById('wallet-info').innerText = accounts[0];
+                document.getElementById('extraActions').style.display = "block";
+                
+                // Controlla se l'utente deve aspettare
+                const isLocked = await checkCooldown(accounts[0]);
+                if (!isLocked) {
+                    btn.innerText = "Proof of Humanity";
+                    currentState = "verify";
+                }
                 return;
             }
 
-            const nextClaimTime = (lastSeconds + (7 * 24 * 60 * 60)) * 1000;
-            const now = Date.now();
-
-            if (now < nextClaimTime) {
-                document.getElementById('mainActionBtn').disabled = true;
-                document.getElementById('mainActionBtn').innerText = "LOCKED";
-                document.getElementById('cooldown-box').style.display = "block";
-                updateStatus("Cooldown active.", false);
-                startTimer(nextClaimTime);
-            } else {
-                updateStatus("Uplink active.", true);
+            // STEP 3: VERIFICA UMANA
+            if (currentState === "verify") {
+                btn.disabled = true;
+                updateStatus("Processing Biometrics...", true);
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerText = "Claim 1.00 PUSD";
+                    currentState = "claim";
+                    updateStatus("Human Verified", true);
+                }, 1500);
+                return;
             }
-        } catch (e) { console.error(e); }
+
+            // STEP 4: CLAIM
+            if (currentState === "claim") {
+                btn.disabled = true;
+                updateStatus("Broadcasting...", true);
+                const tx = await contract.claimToken({ gasLimit: 250000 });
+                await tx.wait();
+                updateStatus("Transfer Successful", true);
+                btn.innerText = "Received";
+                setTimeout(() => location.reload(), 3000);
+            }
+
+        } catch (e) {
+            console.error(e);
+            updateStatus("Link Error", false);
+        }
+    }
+
+    async function checkCooldown(addr) {
+        try {
+            const last = await contract.lastClaim(addr);
+            const lastSec = last.toNumber();
+            if (lastSec === 0) return false;
+
+            const next = (lastSec + (7 * 24 * 60 * 60)) * 1000;
+            if (Date.now() < next) {
+                const btn = document.getElementById('smartBtn');
+                btn.disabled = true;
+                btn.innerText = "Uplink Locked";
+                document.getElementById('cooldown-box').style.display = "block";
+                updateStatus("Cooldown Active", false);
+                startTimer(next);
+                return true;
+            }
+            return false;
+        } catch (e) { return false; }
     }
 
     function startTimer(target) {
         const val = document.getElementById('timer-value');
         const itv = setInterval(() => {
             const diff = target - Date.now();
-            if (diff <= 0) {
-                clearInterval(itv);
-                location.reload();
-            }
+            if (diff <= 0) { clearInterval(itv); location.reload(); }
             const d = Math.floor(diff / 86400000);
             const h = Math.floor((diff % 86400000) / 3600000);
             const m = Math.floor((diff % 3600000) / 60000);
@@ -210,10 +192,7 @@
     async function watchToken() {
         await window.ethereum.request({
             method: 'wallet_watchAsset',
-            params: {
-                type: 'ERC20',
-                options: { address: CONTRACT_ADDR, symbol: 'PUSD', decimals: 18 }
-            }
+            params: { type: 'ERC20', options: { address: CONTRACT_ADDR, symbol: 'PUSD', decimals: 18 } }
         });
     }
 </script>
