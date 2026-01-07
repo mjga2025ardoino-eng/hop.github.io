@@ -9,22 +9,16 @@
     <style>
         :root { --primary: #000; --accent: #fff; --grey: #888; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; font-family: 'Space Grotesk', sans-serif; color: var(--accent); }
-        
         #noiseCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.12; }
-
         .container { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; }
         .card { background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(12px); border: 1px solid #222; padding: 3rem; border-radius: 4px; max-width: 420px; width: 90%; text-align: center; }
-        
         h1 { font-size: 3.5rem; font-weight: 700; letter-spacing: -3px; margin: 0; line-height: 1; }
         .sub-header { color: var(--grey); margin-bottom: 2rem; font-size: 0.8rem; letter-spacing: 3px; font-weight: 300; text-transform: uppercase; }
-
         .btn { background: var(--accent); color: var(--primary); border: none; padding: 16px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; transition: all 0.3s; width: 100%; margin-top: 12px; border-radius: 2px; }
-        .btn:hover { background: #bbb; transform: scale(1.02); }
+        .btn:hover { background: #bbb; }
         .btn:disabled { background: #1a1a1a; color: #444; cursor: not-allowed; }
-
-        #status { font-size: 0.7rem; margin-top: 1.5rem; color: var(--grey); text-transform: uppercase; min-height: 1em; }
+        #status { font-size: 0.7rem; margin-top: 1.5rem; color: var(--grey); text-transform: uppercase; }
         #walletAddress { font-size: 0.6rem; color: #555; margin-top: 10px; word-break: break-all; font-family: monospace; }
-        
         .timer { font-size: 0.8rem; color: #ff3e3e; margin-top: 10px; display: none; }
     </style>
 </head>
@@ -37,7 +31,7 @@
         <h1>PUSD</h1>
         <div class="sub-header">Asset-Hub Westend</div>
         
-        <button class="btn" id="connectBtn" onclick="initConnection()">Connect & Setup Network</button>
+        <button class="btn" id="connectBtn" onclick="initConnection()">Connect Wallet</button>
         <p id="walletAddress"></p>
 
         <div id="actionPanel" style="display:none;">
@@ -65,9 +59,11 @@
     }
     noise();
 
-    // --- NETWORK DATA ---
+    // --- CONFIGURATION ---
+    const TARGET_CHAIN_ID = '420420421';
+    const TARGET_CHAIN_HEX = '0x19082935';
     const WESTEND_DATA = {
-        chainId: '0x19082935', // 420420421 in hex
+        chainId: TARGET_CHAIN_HEX,
         chainName: 'Asset-Hub Westend Testnet',
         nativeCurrency: { name: 'WND', symbol: 'WND', decimals: 18 },
         rpcUrls: ['https://westend-asset-hub-eth-rpc.polkadot.io'],
@@ -86,75 +82,5 @@
         if (!window.ethereum) return alert("MetaMask not found");
         
         try {
-            // 1. Check/Switch Network
-            try {
-                await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: WESTEND_DATA.chainId }],
-                });
-            } catch (switchError) {
-                if (switchError.code === 4902) {
-                    await window.ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [WESTEND_DATA],
-                    });
-                }
-            }
-
-            // 2. Connect Wallet
             const provider = new ethers.providers.Web3Provider(window.ethereum);
-            await provider.send("eth_requestAccounts", []);
-            signer = provider.getSigner();
-            const addr = await signer.getAddress();
-            contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-
-            document.getElementById('walletAddress').innerText = addr;
-            document.getElementById('connectBtn').style.display = 'none';
-            document.getElementById('actionPanel').style.display = 'block';
-            document.getElementById('status').innerText = "NETWORK SYNCED • READY";
-            
-            checkCooldown(addr);
-        } catch (err) {
-            console.error(err);
-            document.getElementById('status').innerText = "CONNECTION FAILED";
-        }
-    }
-
-    async function checkCooldown(addr) {
-        const lastClaim = await contract.lastClaim(addr);
-        const nextClaim = (lastClaim.toNumber() + (7 * 24 * 60 * 60)) * 1000;
-        if (Date.now() < nextClaim) {
-            document.getElementById('pohBtn').disabled = true;
-            document.getElementById('status').innerText = "COOLDOWN ACTIVE";
-            const date = new Date(nextClaim).toLocaleDateString();
-            document.getElementById('claimTimer').innerText = `NEXT CLAIM: ${date}`;
-            document.getElementById('claimTimer').style.display = 'block';
-        }
-    }
-
-    function verifyHuman() {
-        document.getElementById('pohBtn').innerText = "ANALYZING...";
-        document.getElementById('status').innerText = "BIOMETRIC SCAN IN PROGRESS";
-        setTimeout(() => {
-            document.getElementById('pohBtn').innerText = "VERIFIED";
-            document.getElementById('pohBtn').disabled = true;
-            document.getElementById('claimBtn').disabled = false;
-            document.getElementById('status').innerText = "HUMAN CONFIRMED";
-        }, 2000);
-    }
-
-    async function claim() {
-        try {
-            document.getElementById('status').innerText = "TRANSMITTING...";
-            const tx = await contract.claimToken();
-            await tx.wait();
-            document.getElementById('status').innerText = "1.00 PUSD SECURED";
-            document.getElementById('claimBtn').disabled = true;
-        } catch (err) {
-            document.getElementById('status').innerText = "TRANSACTION REJECTED";
-        }
-    }
-</script>
-
-</body>
-</html>
+            const { chainId } = await provider.getNetwork
