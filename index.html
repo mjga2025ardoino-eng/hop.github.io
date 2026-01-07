@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUSD | Alpha 0.8</title>
+    <title>PUSD | Alpha 0.9</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -27,7 +27,7 @@
 </head>
 <body>
 
-<div class="v">ALPHA 0.8</div>
+<div class="v">ALPHA 0.9</div>
 
 <div class="container">
     <h1>PUSD</h1>
@@ -54,7 +54,11 @@
 
 <script>
     const TARGET_HEX = '0x19082935';
-    const CONTRACT_ADDR = "0x0xdd1747d54fa8d568f9e25b5fbf08561fe6b39f41"; // Assicurati sia corretto senza doppio 0x
+    const CONTRACT_ADDR = "0xdD1747d54Fa8d568f9e25B5fBf08561fe6b39f41";
+    
+    // FULL ABI INTEGRATA
+    const CONTRACT_ABI = [{"type":"constructor","inputs":[],"stateMutability":"nonpayable"},{"name":"Approval","type":"event","inputs":[{"name":"owner","type":"address","indexed":true,"internalType":"address"},{"name":"spender","type":"address","indexed":true,"internalType":"address"},{"name":"val","type":"uint256","indexed":false,"internalType":"uint256"}],"anonymous":false},{"name":"Transfer","type":"event","inputs":[{"name":"from","type":"address","indexed":true,"internalType":"address"},{"name":"to","type":"address","indexed":true,"internalType":"address"},{"name":"val","type":"uint256","indexed":false,"internalType":"uint256"}],"anonymous":false},{"name":"CLAIM_AMT","type":"function","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"WEEK","type":"function","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"allowance","type":"function","inputs":[{"name":"","type":"address","internalType":"address"},{"name":"","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"approve","type":"function","inputs":[{"name":"sp","type":"address","internalType":"address"},{"name":"amt","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"name":"balanceOf","type":"function","inputs":[{"name":"","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"claimToken","type":"function","inputs":[],"outputs":[],"stateMutability":"nonpayable"},{"name":"decimals","type":"function","inputs":[],"outputs":[{"name":"","type":"uint8","internalType":"uint8"}],"stateMutability":"view"},{"name":"lastClaim","type":"function","inputs":[{"name":"","type":"address","internalType":"address"}],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"name","type":"function","inputs":[],"outputs":[{"name":"","type":"string","internalType":"string"}],"stateMutability":"view"},{"name":"owner","type":"function","inputs":[],"outputs":[{"name":"","type":"address","internalType":"address"}],"stateMutability":"view"},{"name":"symbol","type":"function","inputs":[],"outputs":[{"name":"","type":"string","internalType":"string"}],"stateMutability":"view"},{"name":"totalSupply","type":"function","inputs":[],"outputs":[{"name":"","type":"uint256","internalType":"uint256"}],"stateMutability":"view"},{"name":"transfer","type":"function","inputs":[{"name":"to","type":"address","internalType":"address"},{"name":"amount","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"},{"name":"transferFrom","type":"function","inputs":[{"name":"frm","type":"address","internalType":"address"},{"name":"to","type":"address","internalType":"address"},{"name":"amt","type":"uint256","internalType":"uint256"}],"outputs":[{"name":"","type":"bool","internalType":"bool"}],"stateMutability":"nonpayable"}];
+
     const NETWORK_PARAMS = {
         chainId: TARGET_HEX,
         chainName: 'Asset-Hub Westend',
@@ -63,12 +67,12 @@
         blockExplorerUrls: ['https://assethub-westend.subscan.io']
     };
 
-    let signer, contract, claimStep = "verify";
+    let signer, contract, claimStep = "verify", provider;
 
     async function monitorNetwork() {
         if (!window.ethereum) return;
         const currentChain = await window.ethereum.request({ method: 'eth_chainId' });
-        if (currentChain === TARGET_HEX) {
+        if (currentChain.toLowerCase() === TARGET_HEX.toLowerCase()) {
             document.getElementById('btnNetwork').style.display = 'none';
             document.getElementById('btnConnect').classList.remove('btn-outline');
             updateStatus("Network Validated", true);
@@ -86,12 +90,9 @@
         if (!window.ethereum) return;
         try {
             const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+            provider = new ethers.providers.Web3Provider(window.ethereum, "any");
             signer = provider.getSigner();
-            contract = new ethers.Contract(CONTRACT_ADDR, [
-                "function claimToken() external",
-                "function lastClaim(address) view returns (uint256)"
-            ], signer);
+            contract = new ethers.Contract(CONTRACT_ADDR, CONTRACT_ABI, signer);
 
             document.getElementById('setupSection').style.display = 'none';
             document.getElementById('actionSection').style.display = 'block';
@@ -101,7 +102,6 @@
         } catch (e) { updateStatus("Connection Failed", false); }
     }
 
-    // --- FIX CLAIM (GAS & RPC) ---
     async function handleClaim() {
         const btn = document.getElementById('btnClaim');
         if (claimStep === "verify") {
@@ -116,28 +116,26 @@
         } else {
             try {
                 btn.disabled = true;
-                updateStatus("Requesting PUSD...", true);
+                updateStatus("Linking RPC...", true);
 
-                // Forziamo un limite di gas alto per evitare l'errore JSON-RPC di stima fallita
+                // Recuperiamo il gas price attuale per la rete Westend
+                const gasPrice = await provider.getGasPrice();
+                
+                // Invio transazione con Gas Limit esplicito e Gas Price aggiornato
                 const tx = await contract.claimToken({
-                    gasLimit: 300000, 
-                    // Alcuni nodi RPC richiedono il prezzo del gas esplicito su testnet
+                    gasLimit: 400000,
+                    gasPrice: gasPrice.mul(120).div(100) // Aggiungiamo un 20% di buffer al prezzo del gas
                 });
 
-                updateStatus("Transaction Pending...", true);
+                updateStatus("Broadcasting...", true);
                 await tx.wait();
                 
-                updateStatus("1 PUSD Secured", true);
+                updateStatus("Claim Success", true);
                 btn.innerText = "Received";
                 setTimeout(() => location.reload(), 3000);
             } catch (e) {
-                console.error("RPC Error Details:", e);
-                // Se l'errore contiene "Wait", è il cooldown del contratto
-                if (e.message.includes("Wait")) {
-                    updateStatus("Cooldown still active", false);
-                } else {
-                    updateStatus("RPC Error: Check WND Balance", false);
-                }
+                console.error(e);
+                updateStatus("RPC Error: Check WND & Time", false);
                 btn.disabled = false;
             }
         }
@@ -149,11 +147,11 @@
             const next = (last.toNumber() + (7 * 24 * 60 * 60)) * 1000;
             if (Date.now() < next) {
                 document.getElementById('btnClaim').disabled = true;
-                document.getElementById('btnClaim').innerText = "Access Locked";
+                document.getElementById('btnClaim').innerText = "Locked";
                 document.getElementById('cooldown-box').style.display = "block";
                 startTimer(next);
             }
-        } catch(e) { console.log("New user"); }
+        } catch(e) { console.log("New User"); }
     }
 
     function startTimer(target) {
