@@ -9,44 +9,23 @@
     <style>
         :root { --bg: #000; --fg: #fff; --accent: #e6007a; --border: #1a1a1a; }
         body { background: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-        
-        /* Background Canvas */
         #bg-canvas { position: fixed; top: 0; left: 0; z-index: -1; }
-
-        .container { 
-            width: 100%; max-width: 400px; padding: 20px; text-align: center; 
-            background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
-            border: 1px solid var(--border); border-radius: 8px; position: relative;
-        }
+        .container { width: 100%; max-width: 400px; padding: 20px; text-align: center; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px); border: 1px solid var(--border); border-radius: 8px; position: relative; }
         h1 { font-family: 'Unbounded', sans-serif; font-size: 3rem; margin: 0; letter-spacing: -2px; }
         .author-note { font-size: 0.55rem; color: #e6007a; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; opacity: 0.8; }
         .tagline { font-size: 0.75rem; color: #555; margin: 15px 0 25px 0; text-transform: uppercase; letter-spacing: 2px; }
-        
-        .btn { 
-            font-family: 'Inter', sans-serif; background: var(--fg); color: var(--bg); border: none; 
-            height: 60px; font-size: 0.85rem; font-weight: 700; border-radius: 4px; cursor: pointer; 
-            width: 100%; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; 
-            text-transform: uppercase; transition: 0.2s;
-        }
+        .btn-hint { font-size: 0.65rem; color: #444; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
+        .btn { font-family: 'Inter', sans-serif; background: var(--fg); color: var(--bg); border: none; height: 60px; font-size: 0.85rem; font-weight: 700; border-radius: 4px; cursor: pointer; width: 100%; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; text-transform: uppercase; transition: 0.2s; }
         .btn:hover { background: #ccc; }
         .btn-outline { background: transparent; color: var(--fg); border: 1px solid var(--border); }
         .btn:disabled { opacity: 0.2; cursor: not-allowed; }
-
-        #timer-display { 
-            height: 60px; border: 1px solid #300; color: #ff3e3e; display: none; 
-            align-items: center; justify-content: center; font-family: 'Unbounded'; 
-            font-size: 0.8rem; margin-bottom: 12px; border-radius: 4px;
-        }
-
+        #timer-display { height: 60px; border: 1px solid #300; color: #ff3e3e; display: none; align-items: center; justify-content: center; font-family: 'Unbounded'; font-size: 0.8rem; margin-bottom: 12px; border-radius: 4px; }
         #poh-box { border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; display: none; background: #050505; border-radius: 4px; }
         .poh-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; }
         .poh-cell { background: #000; border: 1px solid #222; padding: 12px; cursor: pointer; font-size: 1.2rem; border-radius: 4px; transition: 0.2s; }
         .poh-cell:hover { border-color: var(--accent); }
         .target { background: #111; padding: 10px; color: var(--accent); border: 1px dashed #333; margin-bottom: 10px; font-family: 'Unbounded'; }
-        
         #status { margin-top: 20px; font-size: 0.65rem; color: #444; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
-
-        /* Footers */
         .f-left { position: fixed; bottom: 20px; left: 20px; font-family: 'Unbounded'; font-size: 10px; color: #444; }
         .f-right { position: fixed; bottom: 20px; right: 20px; font-family: 'Unbounded'; font-size: 10px; color: var(--accent); }
     </style>
@@ -60,11 +39,12 @@
 <div class="container">
     <h1>PUSD</h1>
     <div class="author-note">The White Rabbit's lazy experiment on a rainy January 2026 day</div>
-    <div class="tagline">Westend Asset-Hub Terminal</div>
+    <div class="tagline">I asked the Asset-Hub for a joke, but it said my balance was the punchline.</div>
 
     <div id="step-setup">
-        <button class="btn" onclick="addNetwork()">1. Configure Westend Network</button>
-        <button class="btn btn-outline" onclick="connect()">2. Connect Wallet</button>
+        <button class="btn" onclick="addNetwork()">Configure Westend Network</button>
+        <div class="btn-hint">Already configured? Skip to connect:</div>
+        <button class="btn btn-outline" onclick="connect()">Connect Wallet</button>
     </div>
 
     <div id="timer-display"></div>
@@ -90,7 +70,6 @@
 </div>
 
 <script>
-    // BG Animation
     const canvas = document.getElementById('bg-canvas');
     const ctx = canvas.getContext('2d');
     let dots = [];
@@ -118,7 +97,6 @@
             d.x += d.vx; d.y += d.vy;
             if (d.x < 0 || d.x > canvas.width) d.vx *= -1;
             if (d.y < 0 || d.y > canvas.height) d.vy *= -1;
-            
             let dist = Math.hypot(mouse.x - d.x, mouse.y - d.y);
             if (dist < 100) {
                 d.x -= (mouse.x - d.x) * 0.02;
@@ -132,7 +110,6 @@
     init(); animate();
     window.addEventListener('resize', init);
 
-    // BLOCKCHAIN LOGIC (ORIGINAL)
     const ADDR = "0xdd1747d54fa8d568f9e25b5fbf08561fe6b39f41";
     const ABI = ["function claimToken() external", "function lastClaim(address) view returns (uint256)"];
     const ICONS = ['⚡', '🛡️', '📡', '💎', '🌑', '🚀', '🌀', '🔑', '🌿', '🧊', '🔥', '⚙️'];
