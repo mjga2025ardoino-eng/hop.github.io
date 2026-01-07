@@ -139,4 +139,83 @@
         if (step === "verify") {
             updateStatus("Verifying biological pattern...", true);
             btn.disabled = true;
-            setTimeout(()
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerText = "Claim 1.00 PUSD";
+                updateStatus("Humanity confirmed.", true);
+                step = "claim";
+            }, 1000);
+        } else if (step === "claim") {
+            try {
+                updateStatus("Transmitting...", true);
+                btn.disabled = true;
+                const tx = await contract.claimToken({ gasLimit: 250000 });
+                await tx.wait();
+                updateStatus("Success. 1 PUSD received.", true);
+                btn.innerText = "Received";
+                setTimeout(() => location.reload(), 3000);
+            } catch (e) {
+                updateStatus("Protocol error.", false);
+                btn.disabled = false;
+            }
+        }
+    }
+
+    // --- 4. GESTIONE COOLDOWN E TIMER ---
+    async function checkCooldown(addr) {
+        try {
+            const last = await contract.lastClaim(addr);
+            const lastSeconds = last.toNumber();
+            if (lastSeconds === 0) {
+                updateStatus("Ready for claim.", true);
+                return;
+            }
+
+            const nextClaimTime = (lastSeconds + (7 * 24 * 60 * 60)) * 1000;
+            const now = Date.now();
+
+            if (now < nextClaimTime) {
+                document.getElementById('mainActionBtn').disabled = true;
+                document.getElementById('mainActionBtn').innerText = "LOCKED";
+                document.getElementById('cooldown-box').style.display = "block";
+                updateStatus("Cooldown active.", false);
+                startTimer(nextClaimTime);
+            } else {
+                updateStatus("Uplink active.", true);
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    function startTimer(target) {
+        const val = document.getElementById('timer-value');
+        const itv = setInterval(() => {
+            const diff = target - Date.now();
+            if (diff <= 0) {
+                clearInterval(itv);
+                location.reload();
+            }
+            const d = Math.floor(diff / 86400000);
+            const h = Math.floor((diff % 86400000) / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            const s = Math.floor((diff % 60000) / 1000);
+            val.innerText = `${String(d).padStart(2, '0')}D ${String(h).padStart(2, '0')}H ${String(m).padStart(2, '0')}M ${String(s).padStart(2, '0')}S`;
+        }, 1000);
+    }
+
+    function updateStatus(text, active) {
+        document.getElementById('status-text').innerText = text.toUpperCase();
+        document.getElementById('status-dot').className = active ? 'dot active' : 'dot';
+    }
+
+    async function watchToken() {
+        await window.ethereum.request({
+            method: 'wallet_watchAsset',
+            params: {
+                type: 'ERC20',
+                options: { address: CONTRACT_ADDR, symbol: 'PUSD', decimals: 18 }
+            }
+        });
+    }
+</script>
+</body>
+</html>
