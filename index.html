@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUSD Terminal | Westend Asset-Hub</title>
+    <title>PUSD Paseo | Alpha 0.0.1</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -31,44 +31,44 @@
 
         #poh-box { border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; display: none; background: #050505; border-radius: 4px; }
         .poh-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 15px; }
-        .poh-cell { background: #000; border: 1px solid #222; padding: 12px; cursor: pointer; font-size: 1.2rem; border-radius: 4px; transition: 0.2s; }
-        .poh-cell:hover { border-color: var(--accent); }
+        .poh-cell { background: #000; border: 1px solid #222; padding: 12px; cursor: pointer; font-size: 1.2rem; border-radius: 4px; }
         .target { background: #111; padding: 10px; color: var(--accent); border: 1px dashed #333; margin-bottom: 10px; font-family: 'Unbounded'; }
         
-        #status { margin-top: 20px; font-size: 0.65rem; color: #444; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
+        #status { margin-top: 20px; font-size: 0.65rem; color: #444; text-transform: uppercase; font-weight: 700; }
+        #wallet-addr { font-size: 10px; color: var(--accent); margin-bottom: 15px; display: block; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>PUSD</h1>
-    <div class="tagline">Westend Asset-Hub Terminal</div>
+    <div class="tagline">Paseo TestNet Terminal</div>
 
-    <div id="step-setup">
-        <button class="btn" onclick="addNetwork()">1. Configure Westend Network</button>
+    <div id="step-1">
+        <button class="btn" onclick="addPaseo()">1. Configure Paseo Network</button>
         <button class="btn btn-outline" onclick="connect()">2. Connect Wallet</button>
     </div>
 
     <div id="timer-display"></div>
 
-    <div id="step-poh-trigger" style="display:none;">
-        <button class="btn" onclick="startPoh()">Proof of Humanity</button>
+    <div id="step-2" style="display:none;">
+        <button class="btn" onclick="startPoh()">Verify Humanity</button>
+        <span id="wallet-addr"></span>
     </div>
 
     <div id="poh-box">
-        <div style="font-size: 10px; color: #444; margin-bottom: 10px;">CLICK IN SEQUENCE</div>
         <div class="target" id="poh-display">----</div>
         <div class="poh-grid" id="poh-grid"></div>
     </div>
 
-    <div id="step-claim" style="display:none;">
-        <button class="btn" id="btn-claim" onclick="claim()">Claim 1 PUSD</button>
-        <button class="btn btn-outline" onclick="addAsset()">Add to Wallet</button>
+    <div id="step-3" style="display:none;">
+        <button class="btn" id="btn-claim" onclick="claim()">Claim 1 PUSD ($1)</button>
+        <button class="btn btn-outline" onclick="addPUSD()">Add Asset to Wallet</button>
     </div>
 
-    <div id="status">Waiting for connection...</div>
+    <div id="status">Awaiting Connection</div>
     
-    <a href="https://faucet.polkadot.io/westend" target="_blank" style="color: #222; font-size: 10px; text-decoration: none; margin-top: 40px; display: block; font-weight: 700;">REQUEST WND GAS TOKENS</a>
+    <a href="https://faucet.polkadot.io/paseo" target="_blank" style="color: #222; font-size: 10px; text-decoration: none; margin-top: 40px; display: block; font-weight: 700;">REQUEST PAS TOKENS (GAS)</a>
 </div>
 
 <script>
@@ -81,75 +81,66 @@
     
     let provider, signer, contract, sequence = [], step = 0;
 
-    async function addNetwork() {
+    async function addPaseo() {
         try {
             await window.ethereum.request({
                 method: 'wallet_addEthereumChain',
                 params: [{
-                    chainId: '0x19082935',
-                    chainName: 'Asset-Hub Westend',
-                    nativeCurrency: { name: 'WND', symbol: 'WND', decimals: 18 },
-                    rpcUrls: ['https://westend-asset-hub-eth-rpc.polkadot.io'],
-                    blockExplorerUrls: ['https://assethub-westend.subscan.io']
+                    chainId: '0x190bc416', // 420420422 in hex
+                    chainName: 'Polkadot Hub TestNet',
+                    nativeCurrency: { name: 'PAS', symbol: 'PAS', decimals: 18 },
+                    rpcUrls: ['https://testnet-passet-hub-eth-rpc.polkadot.io'],
+                    blockExplorerUrls: ['https://assethub-paseo.subscan.io']
                 }]
             });
-            document.getElementById('status').innerText = "Network Added Successfully";
+            document.getElementById('status').innerText = "Paseo Network Ready";
         } catch (e) { console.error(e); }
     }
 
     async function connect() {
-        if (!window.ethereum) return alert("MetaMask not detected");
-        try {
-            provider = new ethers.providers.Web3Provider(window.ethereum);
-            await provider.send("eth_requestAccounts", []);
-            signer = provider.getSigner();
-            contract = new ethers.Contract(ADDR, ABI, signer);
-            
-            const userAddr = await signer.getAddress();
-            document.getElementById('step-setup').style.display = 'none';
-            checkCooldown(userAddr);
-        } catch (e) { document.getElementById('status').innerText = "Connection Error"; }
+        if (!window.ethereum) return alert("Please install MetaMask");
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = provider.getSigner();
+        contract = new ethers.Contract(ADDR, ABI, signer);
+        
+        const user = await signer.getAddress();
+        document.getElementById('wallet-addr').innerText = user;
+        document.getElementById('step-1').style.display = 'none';
+        check(user);
     }
 
-    async function checkCooldown(user) {
+    async function check(user) {
         try {
             const last = await contract.lastClaim(user);
-            const now = Math.floor(Date.now() / 1000);
-            const week = 604800;
-            const next = parseInt(last) + week;
-
-            if (now < next && parseInt(last) !== 0) {
-                showTimer(next);
-                document.getElementById('status').innerText = "On Cooldown";
+            const next = (parseInt(last) + 604800) * 1000;
+            if (Date.now() < next && parseInt(last) !== 0) {
+                const box = document.getElementById('timer-display');
+                box.style.display = 'flex';
+                updateTimer(next);
             } else {
-                document.getElementById('step-poh-trigger').style.display = 'block';
-                document.getElementById('status').innerText = "Ready to Claim";
+                document.getElementById('step-2').style.display = 'block';
+                document.getElementById('status').innerText = "Verified Identity Required";
             }
-        } catch (e) { 
-            document.getElementById('step-poh-trigger').style.display = 'block';
-        }
+        } catch (e) { document.getElementById('step-2').style.display = 'block'; }
     }
 
-    function showTimer(nextTimestamp) {
-        const timerDiv = document.getElementById('timer-display');
-        timerDiv.style.display = 'flex';
-        
-        const update = () => {
-            const now = Math.floor(Date.now() / 1000);
-            const diff = nextTimestamp - now;
+    function updateTimer(target) {
+        const box = document.getElementById('timer-display');
+        const count = () => {
+            const diff = target - Date.now();
             if (diff <= 0) { location.reload(); return; }
-            
-            const d = Math.floor(diff / 86400);
-            const h = Math.floor((diff % 86400) / 3600);
-            const m = Math.floor((diff % 3600) / 60);
-            timerDiv.innerText = `NEXT CLAIM IN: ${d}D ${h}H ${m}M`;
+            const d = Math.floor(diff / 86400000);
+            const h = Math.floor((diff % 86400000) / 3600000);
+            const m = Math.floor((diff % 3600000) / 60000);
+            box.innerText = `NEXT CLAIM: ${d}D ${h}H ${m}M`;
         };
-        update();
-        setInterval(update, 60000);
+        count();
+        setInterval(count, 60000);
     }
 
     function startPoh() {
-        document.getElementById('step-poh-trigger').style.display = 'none';
+        document.getElementById('step-2').style.display = 'none';
         document.getElementById('poh-box').style.display = 'block';
         sequence = [...ICONS].sort(() => 0.5 - Math.random()).slice(0, 4);
         document.getElementById('poh-display').innerText = sequence.join('');
@@ -164,8 +155,8 @@
                     step++; c.style.opacity = '0.1';
                     if(step === 4) {
                         document.getElementById('poh-box').style.display = 'none';
-                        document.getElementById('step-claim').style.display = 'block';
-                        document.getElementById('status').innerText = "Humanity Confirmed";
+                        document.getElementById('step-3').style.display = 'block';
+                        document.getElementById('status').innerText = "Identity Confirmed";
                     }
                 } else { step = 0; startPoh(); }
             };
@@ -178,21 +169,18 @@
             const btn = document.getElementById('btn-claim');
             btn.disabled = true;
             document.getElementById('status').innerText = "Broadcasting Transaction...";
-            
             const tx = await contract.claimToken();
-            document.getElementById('status').innerText = "Mining on Asset-Hub... ⏳";
+            document.getElementById('status').innerText = "Waiting for Paseo Block... ⏳";
             await tx.wait();
-            
-            document.getElementById('status').innerText = "Transaction Success! 🎉";
+            document.getElementById('status').innerText = "Claim Success! 🎉";
             setTimeout(() => location.reload(), 3000);
         } catch (e) {
-            document.getElementById('status').innerText = "Error: Check WND Balance";
-            document.getElementById('btn-claim').disabled = false;
-            console.error(e);
+            document.getElementById('status').innerText = "Error: Low PAS for Gas";
+            btn.disabled = false;
         }
     }
 
-    async function addAsset() {
+    async function addPUSD() {
         await window.ethereum.request({ method: 'wallet_watchAsset', params: { 
             type: 'ERC20', options: { address: ADDR, symbol: 'PUSD', decimals: 18 } 
         }});
