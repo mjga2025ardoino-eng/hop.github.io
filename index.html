@@ -3,41 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PUSD | Alpha 1.0.5</title>
+    <title>PUSD | Alpha 1.0.6</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;700&family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #000; --fg: #fff; --accent: #e6007a; --border: #222; }
-        body { background-color: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; -webkit-font-smoothing: antialiased; }
-        .container { width: 100%; max-width: 420px; padding: 20px; }
-        h1 { font-family: 'Unbounded', sans-serif; font-size: 3.5rem; margin: 0; letter-spacing: -3px; text-align: left; }
-        .tagline { font-size: 0.8rem; color: #666; margin: 10px 0 40px 0; text-transform: uppercase; letter-spacing: 2px; }
+        body { background-color: var(--bg); color: var(--fg); font-family: 'Inter', sans-serif; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+        .container { width: 100%; max-width: 400px; padding: 20px; }
+        h1 { font-family: 'Unbounded', sans-serif; font-size: 3.5rem; margin: 0; letter-spacing: -3px; }
+        .tagline { font-size: 0.8rem; color: #555; margin: 10px 0 40px 0; text-transform: uppercase; letter-spacing: 2px; }
         
-        .btn { font-family: 'Inter', sans-serif; background: var(--fg); color: var(--bg); border: none; padding: 20px; font-size: 0.9rem; font-weight: 700; border-radius: 4px; cursor: pointer; transition: all 0.2s; text-transform: uppercase; width: 100%; margin-bottom: 12px; }
+        .btn { font-family: 'Inter', sans-serif; background: var(--fg); color: var(--bg); border: none; padding: 18px; font-size: 0.85rem; font-weight: 700; border-radius: 4px; cursor: pointer; transition: 0.2s; text-transform: uppercase; width: 100%; margin-bottom: 12px; display: block; }
         .btn:hover { background: #ccc; }
-        .btn:disabled { opacity: 0.1; cursor: not-allowed; }
         .btn-outline { background: transparent; color: var(--fg); border: 1px solid var(--border); }
-        
-        /* PoH Mini Game */
-        #poh-box { border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; display: none; }
-        .poh-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
-        .poh-item { background: #111; border: 1px solid #222; padding: 15px; text-align: center; cursor: pointer; font-size: 1.2rem; }
-        .poh-item:hover { border-color: var(--fg); }
-        .instruction { font-size: 0.7rem; color: var(--accent); letter-spacing: 1px; font-weight: 700; }
+        .btn:disabled { opacity: 0.1; cursor: not-allowed; }
 
-        #status-bar { margin-top: 30px; font-size: 0.7rem; color: #444; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
+        #poh-box { border: 1px solid var(--border); padding: 20px; margin-bottom: 20px; display: none; text-align: center; }
+        .poh-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 15px; }
+        .poh-item { background: #111; border: 1px solid #222; padding: 15px; cursor: pointer; font-size: 1.2rem; }
+        .poh-item:hover { border-color: var(--accent); }
+
+        #status-bar { margin-top: 30px; font-size: 0.65rem; color: #444; display: flex; align-items: center; gap: 8px; text-transform: uppercase; }
         .dot { width: 6px; height: 6px; background: #222; border-radius: 50%; }
         .dot.active { background: #00ff00; }
+        
         .v { position: fixed; bottom: 30px; left: 30px; font-size: 10px; color: #222; font-weight: 700; }
     </style>
 </head>
 <body>
 
-<div class="v">ALPHA 1.0.5</div>
+<div class="v">ALPHA 1.0.6</div>
 
 <div class="container">
     <h1>PUSD</h1>
-    <div class="tagline">Asset-Hub Westend<br>Digital Dollar Experiment</div>
+    <div class="tagline">Asset-Hub Westend<br>Uplink Terminal</div>
 
     <div id="setupSection">
         <button class="btn" onclick="addNetwork()">Setup Network</button>
@@ -45,7 +44,7 @@
     </div>
 
     <div id="poh-box">
-        <div class="instruction" id="poh-text">VERIFYING...</div>
+        <div id="poh-text" style="font-size: 0.7rem; color: var(--accent); font-weight: 700;">VERIFYING...</div>
         <div class="poh-grid" id="poh-grid"></div>
     </div>
 
@@ -54,83 +53,91 @@
         <button class="btn btn-outline" onclick="watchToken()">Add to MetaMask</button>
     </div>
 
-    <div id="status-bar"><div id="status-dot" class="dot"></div><span id="status-text">System Idle</span></div>
+    <div id="status-bar"><div id="status-dot" class="dot"></div><span id="status-text">Ready</span></div>
 </div>
 
 <script>
-    // Indirizzo normalizzato ethers-compliant
-    const CONTRACT_ADDR = ethers.utils.getAddress("0xdD1747d54Fa8d568f9e25B5fBf08561fe6b39f41");
-    const TARGET_HEX = '0x19082935';
+    const ADDR = "0xdD1747d54Fa8d568f9e25B5fBf08561fe6b39f41";
+    const HEX = '0x19082935';
     const ICONS = ['🌑', '📡', '🛡️', '🔑', '💎', '🚀'];
-    let targetPattern = [], userPattern = [];
-
-    const ABI = [
-        "function claimToken() external",
-        "function lastClaim(address) view returns (uint256)"
-    ];
-
+    let target = [], user = [];
     let signer, contract;
 
     async function addNetwork() {
-        await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{
-            chainId: TARGET_HEX,
-            chainName: 'Asset-Hub Westend',
-            nativeCurrency: { name: 'WND', symbol: 'WND', decimals: 18 },
-            rpcUrls: ['https://westend-asset-hub-eth-rpc.polkadot.io'],
-            blockExplorerUrls: ['https://assethub-westend.subscan.io']
-        }] });
+        if (!window.ethereum) return alert("Install MetaMask");
+        try {
+            await window.ethereum.request({ method: 'wallet_addEthereumChain', params: [{
+                chainId: HEX,
+                chainName: 'Asset-Hub Westend',
+                nativeCurrency: { name: 'WND', symbol: 'WND', decimals: 18 },
+                rpcUrls: ['https://westend-asset-hub-eth-rpc.polkadot.io'],
+                blockExplorerUrls: ['https://assethub-westend.subscan.io']
+            }] });
+            updateStatus("Network Ready", true);
+        } catch (e) { console.error(e); }
     }
 
     async function connectWallet() {
-        if (!window.ethereum) return;
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
-        signer = provider.getSigner();
-        contract = new ethers.Contract(CONTRACT_ADDR, ABI, signer);
-        
-        document.getElementById('setupSection').style.display = 'none';
-        startPoH();
+        if (!window.ethereum) return alert("Install MetaMask");
+        try {
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            const provider = new ethers.providers.Web3Provider(window.ethereum, "any");
+            signer = provider.getSigner();
+            
+            // Inizializza contratto qui per evitare errori di caricamento libreria
+            contract = new ethers.Contract(ADDR, [
+                "function claimToken() external",
+                "function lastClaim(address) view returns (uint256)"
+            ], signer);
+            
+            document.getElementById('setupSection').style.display = 'none';
+            startPoH();
+            updateStatus("Wallet Linked", true);
+        } catch (e) { console.error(e); updateStatus("Link Failed", false); }
     }
 
     function startPoH() {
         document.getElementById('poh-box').style.display = 'block';
-        targetPattern = [...ICONS].sort(() => 0.5 - Math.random()).slice(0, 3);
-        document.getElementById('poh-text').innerText = `SELECT: ${targetPattern.join(' ')}`;
+        user = [];
+        target = [...ICONS].sort(() => 0.5 - Math.random()).slice(0, 3);
+        document.getElementById('poh-text').innerText = `SELECT IN ORDER: ${target.join(' ')}`;
+        
         const grid = document.getElementById('poh-grid');
         grid.innerHTML = '';
         ICONS.forEach(icon => {
-            const btn = document.createElement('div');
-            btn.className = 'poh-item';
-            btn.innerText = icon;
-            btn.onclick = () => {
-                if(icon === targetPattern[userPattern.length]) {
-                    userPattern.push(icon);
-                    btn.style.opacity = '0.1';
-                    if(userPattern.length === 3) {
+            const el = document.createElement('div');
+            el.className = 'poh-item';
+            el.innerText = icon;
+            el.onclick = () => {
+                if(icon === target[user.length]) {
+                    user.push(icon);
+                    el.style.opacity = '0.1';
+                    el.style.pointerEvents = 'none';
+                    if(user.length === 3) {
                         document.getElementById('poh-box').style.display = 'none';
                         document.getElementById('actionSection').style.display = 'block';
-                        updateStatus("Human Verified", true);
                     }
                 } else {
-                    userPattern = [];
                     startPoH();
                 }
             };
-            grid.appendChild(btn);
+            grid.appendChild(el);
         });
     }
 
     async function handleClaim() {
+        const btn = document.getElementById('btnClaim');
         try {
-            updateStatus("Awaiting Signature", true);
+            btn.disabled = true;
+            updateStatus("Broadcasting...", true);
             const tx = await contract.claimToken();
-            updateStatus("Broadcasting", true);
             await tx.wait();
             updateStatus("Success", true);
-            document.getElementById('btnClaim').innerText = "Claimed";
+            btn.innerText = "Received";
         } catch (e) {
-            updateStatus("RPC Error - Check WND", false);
             console.error(e);
+            updateStatus("RPC Error", false);
+            btn.disabled = false;
         }
     }
 
@@ -142,7 +149,7 @@
     async function watchToken() {
         await window.ethereum.request({
             method: 'wallet_watchAsset',
-            params: { type: 'ERC20', options: { address: CONTRACT_ADDR, symbol: 'PUSD', decimals: 18 } }
+            params: { type: 'ERC20', options: { address: ADDR, symbol: 'PUSD', decimals: 18 } }
         });
     }
 </script>
